@@ -1,8 +1,6 @@
 {
     "BotTracking": {
         "PageUrl": "URL spletne strani",
-        "SiteWithoutDataBackToMatomo": "Nazaj na Matomo",
-        "AIChatbotsContentPagesTitle": "Strani",
-        "ContentUrl": "URL"
+        "SiteWithoutDataBackToMatomo": "Nazaj na Matomo"
     }
 }

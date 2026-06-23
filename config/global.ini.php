@@ -624,9 +624,6 @@ datatable_archiving_maximum_rows_subtable_custom_dimensions = 1000
 
 ; maximum number of rows for any of the Actions tables (pages, downloads, outlinks)
 datatable_archiving_maximum_rows_actions = 500
-; maximum number of rows used when archiving flat page/title actions before rebuilding hierarchy
-; if set to 0, legacy hierarchical-only Actions archiving is used
-datatable_archiving_maximum_rows_actions_flat = 0
 ; maximum number of rows for pages in categories (sub pages, when clicking on the + for a page category)
 ; note: should not exceed the display limit in Piwik\Actions\Controller::ACTIONS_REPORT_ROWS_DISPLAY
 ; because each subdirectory doesn't have paging at the bottom, so all data should be displayed if possible.
@@ -646,11 +643,6 @@ datatable_archiving_maximum_rows_products = 10000
 datatable_archiving_maximum_rows_bots = 250
 ; maximum number of page/document rows listed per AI Assistant in Bot Tracking reports
 datatable_archiving_maximum_rows_subtable_bots = 250
-; maximum number of content URLs (pages/documents) listed in the AI Chatbots Content Requests reports
-datatable_archiving_maximum_rows_ai_chatbot_content = 50000
-; maximum number of page URLs listed in the Human-Favoured / AI-Favoured Pages reports
-; (these span the full human page-URL set, matching the content reports cap)
-datatable_archiving_maximum_rows_ai_chatbot_favoured_pages = 50000
 
 ; maximum number of rows for other tables (Providers, User settings configurations)
 datatable_archiving_maximum_rows_standard = 500
@@ -1264,37 +1256,21 @@ Languages[] = zh-tw
 
 [Plugins]
 ; list of plugins (in order they will be loaded) that are activated by default in the Matomo platform
+; selfwatch is a logs platform, not analytics: the Matomo plugins that read/write the
+; analytics tables (log_visit, log_action, archive_*, goal, ...) are intentionally omitted,
+; since selfwatch's reduced schema does not create those tables. Only framework/UI plugins
+; selfwatch reuses, plus the selfwatch "Logs" plugin, are activated by default.
 Plugins[] = CoreVue
 Plugins[] = CorePluginsAdmin
 Plugins[] = CoreAdminHome
 Plugins[] = CoreHome
 Plugins[] = WebsiteMeasurable
-Plugins[] = IntranetMeasurable
 Plugins[] = Diagnostics
 Plugins[] = CoreVisualizations
 Plugins[] = Proxy
 Plugins[] = API
-Plugins[] = Widgetize
-Plugins[] = Transitions
 Plugins[] = LanguagesManager
-Plugins[] = Actions
 Plugins[] = Dashboard
-Plugins[] = MultiSites
-Plugins[] = Referrers
-Plugins[] = UserLanguage
-Plugins[] = DevicesDetection
-Plugins[] = Goals
-Plugins[] = Ecommerce
-Plugins[] = SEO
-Plugins[] = Events
-Plugins[] = UserCountry
-Plugins[] = GeoIp2
-Plugins[] = VisitsSummary
-Plugins[] = VisitFrequency
-Plugins[] = VisitTime
-Plugins[] = VisitorInterest
-Plugins[] = RssWidget
-Plugins[] = Feedback
 Plugins[] = Monolog
 
 Plugins[] = Login
@@ -1304,35 +1280,12 @@ Plugins[] = SitesManager
 Plugins[] = Installation
 Plugins[] = CoreUpdater
 Plugins[] = CoreConsole
-Plugins[] = ScheduledReports
-Plugins[] = UserCountryMap
-Plugins[] = Live
-Plugins[] = PrivacyManager
-Plugins[] = ImageGraph
-Plugins[] = Annotations
-Plugins[] = MobileMessaging
-Plugins[] = Overlay
 Plugins[] = SegmentEditor
-Plugins[] = Insights
 Plugins[] = Morpheus
-Plugins[] = Contents
-Plugins[] = TestRunner
 Plugins[] = BulkTracking
-Plugins[] = Resolution
-Plugins[] = DevicePlugins
-Plugins[] = Heartbeat
 Plugins[] = Intl
-Plugins[] = Marketplace
-Plugins[] = ProfessionalServices
-Plugins[] = UserId
-Plugins[] = CustomJsTracker
-Plugins[] = Tour
-Plugins[] = PagePerformance
-Plugins[] = CustomDimensions
-Plugins[] = JsTrackerInstallCheck
 Plugins[] = FeatureFlags
-Plugins[] = AIAgents
-Plugins[] = BotTracking
+Plugins[] = Logs
 
 [PluginsInstalled]
 PluginsInstalled[] = Diagnostics
@@ -1343,7 +1296,6 @@ PluginsInstalled[] = SitesManager
 PluginsInstalled[] = Installation
 PluginsInstalled[] = Monolog
 PluginsInstalled[] = Intl
-PluginsInstalled[] = JsTrackerInstallCheck
 
 [PagePerformance]
 ; The configuration below provides the possibility to enable capping of values used for generating 'sum/total' and 'average' metrics for page performance reports.

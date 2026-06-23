@@ -14,7 +14,6 @@ use Piwik\Container\StaticContainer;
 use Piwik\Plugin\ConsoleCommand;
 use Piwik\Plugin\Manager;
 use Piwik\Plugins\CorePluginsAdmin\PluginInstaller;
-use Piwik\Plugins\Marketplace\Marketplace;
 
 /**
  * plugin:install console command.
@@ -36,10 +35,10 @@ class InstallPlugin extends ConsoleCommand
         $output = $this->getOutput();
         $pluginManager = Manager::getInstance();
 
-        if (!Marketplace::isMarketplaceEnabled()) {
-            $output->writeln(sprintf("<error>Marketplace is not enabled, can't install or update plugins.</error>"));
-            return self::FAILURE;
-        }
+        // selfwatch: the Marketplace plugin was removed, so installing/updating plugins from the
+        // marketplace is no longer available.
+        $output->writeln(sprintf("<error>The Marketplace is not available in selfwatch, can't install or update plugins.</error>"));
+        return self::FAILURE;
 
         $pluginNames = $input->getArgument('plugin');
 

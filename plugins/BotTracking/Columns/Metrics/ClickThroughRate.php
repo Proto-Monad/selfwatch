@@ -45,11 +45,8 @@ class ClickThroughRate extends ProcessedMetric
 
     public function compute(Row $row)
     {
-        $rawRequests = $this->getMetric($row, Metrics::METRIC_AI_CHATBOTS_REQUESTS);
-        $rawVisits  = $this->getMetric($row, Metrics::METRIC_AI_CHATBOTS_ACQUIRED_VISITS);
-
-        $requests = is_numeric($rawRequests) ? (int) $rawRequests : 0;
-        $visits  = is_numeric($rawVisits)  ? (int) $rawVisits  : 0;
+        $requests = (int)$this->getMetric($row, Metrics::METRIC_AI_CHATBOTS_REQUESTS);
+        $visits   = (int)$this->getMetric($row, Metrics::METRIC_AI_CHATBOTS_ACQUIRED_VISITS);
 
         return Piwik::getQuotientSafe($visits, $requests, 4);
     }

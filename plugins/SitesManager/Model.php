@@ -442,7 +442,8 @@ class Model
 
     public static function getPatternMatchSqlQuery($table)
     {
-        return "($table.name like ? OR $table.main_url like ? OR $table.group like ?)";
+        // `group` is a reserved word; it must be quoted (SQLite rejects it unquoted).
+        return "($table.name like ? OR $table.main_url like ? OR $table.`group` like ?)";
     }
 
     public static function getPatternMatchSqlBind($pattern)

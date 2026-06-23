@@ -31,7 +31,6 @@ use Piwik\Plugins\UsersManager\API as APIUsersManager;
 use Piwik\Settings\Storage\UserScopedSettingsAccessManager;
 use Piwik\SettingsPiwik;
 use Piwik\Site;
-use Piwik\Tracker\Cache;
 use Piwik\Tracker\IgnoreCookie;
 use Piwik\Translation\Translator;
 use Piwik\Url;
@@ -436,8 +435,6 @@ class Controller extends ControllerAdmin
                 ));
                 $email->safeSend();
             }
-
-            Cache::deleteTrackerCache();
         }
 
         $this->redirectToIndex('UsersManager', 'userSecurity');

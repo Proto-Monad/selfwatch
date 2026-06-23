@@ -14,8 +14,6 @@
         "ColumnRequests": "Anfragen",
         "ColumnServerErrorRequests": "Serverfehler (5xx) Anfragen",
         "ColumnUniqueAiChatbots": "Einzigartige KI-Chatbots",
-        "ColumnUniqueDocumentUrls": "Einzigartige Dokument-URLs",
-        "AIChatbotsContentPagesTitle": "Seiten",
-        "ContentUrl": "URL"
+        "ColumnUniqueDocumentUrls": "Einzigartige Dokument-URLs"
     }
 }

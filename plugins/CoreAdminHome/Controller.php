@@ -22,7 +22,6 @@ use Piwik\Plugin;
 use Piwik\Plugin\ControllerAdmin;
 use Piwik\Changes\UserChanges;
 use Piwik\Plugins\CorePluginsAdmin\CorePluginsAdmin;
-use Piwik\Plugins\Marketplace\Marketplace;
 use Piwik\Plugins\CustomVariables\CustomVariables;
 use Piwik\Plugins\LanguagesManager\LanguagesManager;
 use Piwik\Plugins\Login\PasswordVerifier;
@@ -65,7 +64,7 @@ class Controller extends ControllerAdmin
     {
         $isInternetEnabled = SettingsPiwik::isInternetEnabled();
 
-        $isMarketplaceEnabled = Marketplace::isMarketplaceEnabled();
+        $isMarketplaceEnabled = false; // selfwatch: Marketplace plugin removed
         $isFeedbackEnabled = Plugin\Manager::getInstance()->isPluginLoaded('Feedback');
         $widgetsList = WidgetsList::get();
 
@@ -222,62 +221,8 @@ class Controller extends ControllerAdmin
         return $toReturn;
     }
 
-    /**
-     * Renders and echo's an admin page that lets users generate custom JavaScript
-     * tracking code and custom image tracker links.
-     */
-    public function trackingCodeGenerator()
-    {
-        Piwik::checkUserHasSomeViewAccess();
-
-        $view = new View('@CoreAdminHome/trackingCodeGenerator');
-        $this->setBasicVariablesView($view);
-        $view->topMenu  = MenuTop::getInstance()->getMenu();
-
-        $viewableIdSites = APISitesManager::getInstance()->getSitesIdWithAtLeastViewAccess();
-
-        $defaultIdSite = reset($viewableIdSites);
-        $view->idSite = $this->idSite ?: $defaultIdSite;
-
-        if ($view->idSite) {
-            try {
-                $view->siteName = Site::getNameFor($view->idSite);
-                $view->siteNameDecoded = Common::unsanitizeInputValue($view->siteName);
-            } catch (Exception $e) {
-                // ignore if site no longer exists
-            }
-        }
-
-        $view->defaultReportSiteName = Site::getNameFor($view->idSite);
-        $view->defaultSiteRevenue = Site::getCurrencySymbolFor($view->idSite);
-        $view->maxCustomVariables = 0;
-
-        if (Plugin\Manager::getInstance()->isPluginActivated('CustomVariables')) {
-            $view->maxCustomVariables = CustomVariables::getNumUsableCustomVariables();
-        }
-
-        $view->defaultSite = array('id' => $view->idSite, 'name' => $view->defaultReportSiteName);
-        $view->defaultSiteDecoded = [
-            'id' => $view->idSite,
-            'name' => Common::unsanitizeInputValue($view->defaultReportSiteName),
-        ];
-
-        $allUrls = APISitesManager::getInstance()->getSiteUrlsFromId($view->idSite);
-        if (isset($allUrls[1])) {
-            $aliasUrl = $allUrls[1];
-        } else {
-            $aliasUrl = 'x.domain.com';
-        }
-        $view->defaultReportSiteAlias = $aliasUrl;
-
-        $mainUrl = Site::getMainUrlFor($view->idSite);
-        $view->defaultReportSiteDomain = @parse_url($mainUrl, PHP_URL_HOST);
-
-        $dntChecker = new DoNotTrackHeaderChecker();
-        $view->serverSideDoNotTrackEnabled = $dntChecker->isActive();
-
-        return $view->render();
-    }
+    // selfwatch: the JavaScript/image "Tracking Code" generator page was removed (this is a
+    // logs platform, not web analytics). The action, its template and stylesheet are gone.
 
     /**
      * Shows the "Track Visits" checkbox - iFrame (deprecated)

@@ -23,25 +23,12 @@ class Menu extends \Piwik\Plugin\Menu
 
     public function configureTopMenu(MenuTop $menu)
     {
-        $this->addTopMenuMobileApp($menu);
+        // selfwatch: the "Matomo Mobile" promo link is not relevant to a logs platform.
     }
 
     public function configureAdminMenu(MenuAdmin $menu)
     {
-        $menu->addPlatformItem(
-            'General_API',
-            $this->urlForAction('listAllAPI', array('segment' => false)),
-            7,
-            Piwik::translate('API_TopLinkTooltip')
-        );
-
-        if (Piwik::isUserIsAnonymous()) {
-            $menu->addPlatformItem(
-                'API_Glossary',
-                $this->urlForAction('glossary', array('segment' => false)),
-                50
-            );
-        }
+        // selfwatch: the reporting API reference / glossary pages are not used.
     }
 
     private function addTopMenuMobileApp(MenuTop $menu)

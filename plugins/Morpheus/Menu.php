@@ -32,8 +32,6 @@ class Menu extends \Piwik\Plugin\Menu
         $menu->registerMenuIcon('SitesManager_Sites', $manageMeasurablesIcon);
         $menu->registerMenuIcon('MobileAppMeasurable_MobileApps', $manageMeasurablesIcon);
 
-        if (Development::isEnabled() && Piwik::isUserHasSomeAdminAccess()) {
-            $menu->addDevelopmentItem('CoreAdminHome_UiDemo', $this->urlForAction('demo'));
-        }
+        // selfwatch: the "UI Demo" development page is not shown.
     }
 }

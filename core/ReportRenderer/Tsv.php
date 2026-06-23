@@ -120,7 +120,8 @@ class Tsv extends ReportRenderer
             $reportData = Piwik::translate('CoreHome_ThereIsNoDataForThisReport');
         }
 
-        $reportName = $tsvRenderer->formatValue($processedReport['metadata']['name']);
+        $replaceBySpace = array( $tsvRenderer->separator);
+        $reportName = str_replace($replaceBySpace, " ", $processedReport['metadata']['name']);
         $this->rendered .= implode(
             '',
             array(

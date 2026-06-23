@@ -93,6 +93,11 @@ class SitesManager extends \Piwik\Plugin
 
     public function redirectDashboardToWelcomePage(&$module, &$action)
     {
+        // selfwatch has no "install your tracking code" onboarding: a project receives data
+        // through the log ingestion API, not a JavaScript snippet. Skip the Matomo welcome /
+        // siteWithoutData wizard entirely so login lands directly on the project view.
+        return;
+
         if ($module !== 'CoreHome' || $action !== 'index') {
             return;
         }

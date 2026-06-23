@@ -65,12 +65,6 @@ class FormFirstWebsiteSetup extends QuickForm2
             ->loadOptions($timezones);
         $tz->addRule('required', Piwik::translate('General_Required', Piwik::translate('Installation_Timezone')));
         $tz->addRule('checkTimezone', Piwik::translate('General_NotValid', Piwik::translate('Installation_Timezone')));
-        $tz = $this->addElement('select', 'ecommerce')
-            ->setLabel(Piwik::translate('Goals_Ecommerce'))
-            ->loadOptions(array(
-                               0 => Piwik::translate('SitesManager_NotAnEcommerceSite'),
-                               1 => Piwik::translate('SitesManager_EnableEcommerce'),
-                          ));
 
         $this->addElement('submit', 'submit', array('value' => Piwik::translate('General_Next') . ' »', 'class' => 'btn'));
 

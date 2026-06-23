@@ -203,11 +203,13 @@ class Option
 
         if (! $rowsUpdated) {
             try {
-                $sql  = 'INSERT IGNORE INTO `' . Common::prefixTable('option') . '` (option_name, option_value, autoload) ' .
-                        'VALUES (?, ?, ?) ';
-                $bind = array($name, $value, $autoLoad);
-
-                Db::query($sql, $bind);
+                // Portable insert via DBAL (replaces MySQL's INSERT IGNORE). The try/catch
+                // tolerates the race where a concurrent request already created the row.
+                \Piwik\Db\Dbal\Connection::get()->insert(Common::prefixTable('option'), [
+                    'option_name'  => $name,
+                    'option_value' => $value,
+                    'autoload'     => $autoLoad,
+                ]);
             } catch (\Exception $e) {
             }
         }

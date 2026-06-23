@@ -17,10 +17,8 @@ use Piwik\Piwik;
 use Piwik\Plugin\Manager as PluginManager;
 use Piwik\Plugin\Dependency as PluginDependency;
 use Piwik\Plugin\Manager;
-use Piwik\Plugins\Marketplace\Environment;
-use Piwik\Plugins\Marketplace\Marketplace;
+use Piwik\Plugin\Environment;
 use Piwik\Unzip;
-use Piwik\Plugins\Marketplace\Api\Client;
 
 class PluginInstaller
 {
@@ -29,22 +27,20 @@ class PluginInstaller
     private $pluginName;
 
     /**
-     * Null if Marketplace Plugin is not installed
-     * @var Client|null
+     * selfwatch: the Marketplace plugin was removed, so there is no marketplace API client and
+     * installing plugins from the marketplace is unavailable. Plugin upload still works.
+     * @var mixed|null
      */
     private $marketplaceClient;
 
     /**
      * PluginInstaller constructor.
-     * @param Client|null $client
+     * @param mixed|null $client
      */
     public function __construct($client = null)
     {
         if (!empty($client)) {
             $this->marketplaceClient = $client;
-        } elseif (Marketplace::isMarketplaceEnabled()) {
-            // we load it manually as marketplace might not be loaded
-            $this->marketplaceClient = StaticContainer::get('Piwik\Plugins\Marketplace\Api\Client');
         }
     }
 

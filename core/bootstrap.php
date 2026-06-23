@@ -52,6 +52,28 @@ require_once PIWIK_INCLUDE_PATH . '/libs/upgradephp/upgrade.php';
 // Composer autoloader
 require_once PIWIK_VENDOR_PATH . '/autoload.php';
 
+// selfwatch: PSR-4 autoloading for the manually-vendored Doctrine DBAL (and its runtime
+// deps). This packaged build ships hand-maintained Composer autoload files and no
+// composer.json, so regenerating the autoloader is not an option; registering a small
+// dedicated loader here keeps DBAL available without touching Composer's generated maps.
+spl_autoload_register(static function ($class) {
+    static $prefixes = [
+        'Doctrine\\DBAL\\'         => '/doctrine/dbal/src/',
+        'Doctrine\\Deprecations\\' => '/doctrine/deprecations/src/',
+        'Psr\\Cache\\'             => '/psr/cache/src/',
+    ];
+    foreach ($prefixes as $prefix => $dir) {
+        $len = strlen($prefix);
+        if (strncmp($class, $prefix, $len) === 0) {
+            $file = PIWIK_VENDOR_PATH . $dir . str_replace('\\', '/', substr($class, $len)) . '.php';
+            if (is_file($file)) {
+                require $file;
+            }
+            return;
+        }
+    }
+});
+
 require_once PIWIK_INCLUDE_PATH . '/libs/upgradephp/dev.php';
 
 require_once PIWIK_INCLUDE_PATH . '/DIObject.php';

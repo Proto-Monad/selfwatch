@@ -16,5 +16,6 @@ class Type extends \Piwik\Measurable\Type
     protected $namePlural = 'SitesManager_Sites'; // translated into more languages
     protected $description = 'WebsiteMeasurable_WebsiteDescription';
     protected $longDescription = 'WebsiteMeasurable_WebsiteLongDescription';
-    protected $howToSetupUrl = '?module=CoreAdminHome&action=trackingCodeGenerator';
+    // selfwatch: no JavaScript tracking, so there is no "View Tracking code" setup link.
+    protected $howToSetupUrl = '';
 }

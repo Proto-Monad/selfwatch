@@ -197,6 +197,13 @@ class Updater extends \Piwik\Updates
 
     public function getAllVersions(PiwikUpdater $updater)
     {
+        // selfwatch removes Matomo's analytics dimension system (visit/action/conversion
+        // columns on the log_* tables). The automatic column-migration that this method
+        // drives is therefore disabled: it has no role in a log-tracking platform and,
+        // because it emits MySQL-specific column DDL, it would otherwise block installs on
+        // SQLite/Postgres. The dimension classes themselves are removed in later milestones.
+        return array();
+
         // to avoid having to load all dimensions on each request we check if there were any changes on the file system
         // can easily save > 100ms for each request
         $cachedTimes  = self::getCachedDimensionFileChanges();

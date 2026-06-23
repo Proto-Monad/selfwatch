@@ -4,8 +4,6 @@
         "NoDataHttpTrackingApi": "HTTP jarraipen APIa",
         "SiteWithoutDataBackToMatomo": "Itzuli Matomora",
         "SiteWithoutDataInstallWithX": "Instalatu honekin: %1$s",
-        "SiteWithoutDataStepByStepGuide": "Pausoz pausoko gida",
-        "AIChatbotsContentPagesTitle": "Orriak",
-        "ContentUrl": "URLa"
+        "SiteWithoutDataStepByStepGuide": "Pausoz pausoko gida"
     }
 }

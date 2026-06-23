@@ -1034,13 +1034,12 @@ $.extend(DataTable.prototype, UIControl.prototype, {
         var $next = $('.dataTableNext', domElem);
 
         // Display the next link if the total Rows is greater than the current end row
-        // and filter_limit is a positive number (not "show all")
         $next.each(function () {
             var offsetEnd = Number(self.param.filter_offset)
                 + Number(self.param.filter_limit);
             var totalRows = Number(self.param.totalRows);
             if (self.param.keep_summary_row == 1) --totalRows;
-            if (offsetEnd < totalRows && Number(self.param.filter_limit) > 0) {
+            if (offsetEnd < totalRows) {
                 $(this).css('visibility', 'visible');
             }
         });
@@ -1103,7 +1102,8 @@ $.extend(DataTable.prototype, UIControl.prototype, {
 
                     piwik.annotations.placeEvolutionIcons(annotations, domElem);
 
-                    piwik.annotations.placeEvolutionAnnotations(annotations, domElem);
+                    // add new section under axis
+                    annotations.insertBefore($('.dataTableFooterNavigation', domElem));
 
                     // reposition annotation icons every time the graph is resized
                     $('.piwik-graph', domElem).on('resizeGraph', function () {

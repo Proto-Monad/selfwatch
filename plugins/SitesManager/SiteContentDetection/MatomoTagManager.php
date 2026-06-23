@@ -22,7 +22,7 @@ class MatomoTagManager extends SiteContentDetectionAbstract
 
     public static function getIcon(): string
     {
-        return './plugins/SitesManager/images/mtm.svg';
+        return './plugins/SitesManager/images/mtm.png';
     }
 
     public static function getContentType(): int

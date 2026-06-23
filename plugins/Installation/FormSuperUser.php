@@ -15,7 +15,6 @@ use HTML_QuickForm2_Rule;
 use Piwik\Piwik;
 use Piwik\Plugins\UsersManager\UsersManager;
 use Piwik\QuickForm2;
-use Piwik\Url;
 
 /**
  * phpcs:ignoreFile PSR1.Classes.ClassDeclaration.MultipleClasses
@@ -54,32 +53,7 @@ class FormSuperUser extends QuickForm2
         $email->addRule('required', Piwik::translate('General_Required', Piwik::translate('Installation_Email')));
         $email->addRule('checkEmail', Piwik::translate('UsersManager_ExceptionInvalidEmail'));
 
-        $this->addElement('checkbox', 'subscribe_newsletter_piwikorg', null,
-            array(
-                'content' => '&nbsp;&nbsp;' . Piwik::translate('Installation_PiwikOrgNewsletter'),
-            ));
-
-        $professionalServicesNewsletter = Piwik::translate('Installation_ProfessionalServicesNewsletter',
-            ["<a href='" . Url::addCampaignParametersToMatomoLink('https://matomo.org/support/') . "' style='color:#444;' rel='noreferrer noopener' target='_blank'>", "</a>"]
-
-        );
-
-        $privacyNoticeLink = Url::getExternalLinkTag('https://matomo.org/privacy-policy/');
-        $privacyNotice = '<div class="form-help email-privacy-notice">' . Piwik::translate('Installation_EmailPrivacyNotice', [$privacyNoticeLink, '</a>'])
-            . '</div>';
-
-        $this->addElement('checkbox', 'subscribe_newsletter_professionalservices', null,
-            array(
-                'content' => $privacyNotice . '&nbsp;&nbsp;' . $professionalServicesNewsletter
-            ));
-
         $this->addElement('submit', 'submit', array('value' => Piwik::translate('General_Next') . ' »', 'class' => 'btn'));
-
-        // default values
-        $this->addDataSource(new HTML_QuickForm2_DataSource_Array(array(
-            'subscribe_newsletter_piwikorg' => 0,
-            'subscribe_newsletter_professionalservices' => 0,
-        )));
     }
 }
 

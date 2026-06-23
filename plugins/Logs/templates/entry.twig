@@ -1,0 +1,122 @@
+{% extends 'admin.twig' %}
+
+{% set title %}{{ siteName }} - Log entry{% endset %}
+{% block pageTitle %}{{ entry.level|upper }} · {{ siteName }} - selfwatch{% endblock %}
+{% block pageDescription %}Log entry #{{ entry.idlogentry }}{% endblock %}
+
+{% macro cell(k, v) %}
+  <div class="cell"><div class="k">{{ k }}</div><div class="v {{ v is empty ? 'empty' }}">{{ v is empty ? '—' : v }}</div></div>
+{% endmacro %}
+
+{% block content %}
+{% include '@Logs/_styles.twig' %}
+{% import _self as ui %}
+
+<div class="sw">
+  <a class="sw-back" href="index.php?module=Logs&action=index&idSite={{ idSite }}&period={{ period }}&date={{ date }}">&larr; Back to logs</a>
+
+  <div class="sw-detail-head">
+    <div class="lv"><span class="sw-badge sw-lv-{{ entry.level }}">{{ entry.level }}</span></div>
+    <div style="flex:1;min-width:0;">
+      <h2 class="sw-title">{{ entry.message ?: '(no message)' }}</h2>
+      <div class="sw-title-sub">
+        <span>{{ entry.logged_at }}</span>
+        {% if entry.environment %}<span><span class="sw-env">{{ entry.environment }}</span></span>{% endif %}
+        {% if entry.source %}<span>source: <b class="sw-mono">{{ entry.source }}</b></span>{% endif %}
+        {% if entry.kind and entry.kind != 'log' %}<span>kind: <b class="sw-mono">{{ entry.kind }}</b></span>{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="sw-grid">
+    {{ ui.cell('Event ID', entry.event_id) }}
+    {{ ui.cell('Platform', entry.platform) }}
+    {{ ui.cell('Environment', entry.environment) }}
+    {{ ui.cell('Release', entry.app_release) }}
+    {{ ui.cell('Source / logger', entry.source) }}
+    {{ ui.cell('Host', entry.host) }}
+    {{ ui.cell('Trace ID', entry.trace_id) }}
+    {{ ui.cell('Logged at', entry.logged_at) }}
+    {{ ui.cell('Received at', entry.received_at) }}
+  </div>
+
+  {% if exceptions is not empty %}
+  <div class="sw-section">
+    <h3>Exception {% if exceptions|length > 1 %}<span class="n">{{ exceptions|length }} chained</span>{% endif %}</h3>
+    {% for exc in exceptions %}
+      <div class="sw-exc">
+        <div class="sw-exc__head">
+          <span class="sw-exc__type">{{ exc.type }}</span>
+          {% if exc.value %}<div class="sw-exc__val">{{ exc.value }}</div>{% endif %}
+        </div>
+        {% if exc.frames is not empty %}
+          <ul class="sw-frames">
+            {# wire order is oldest-first (throw site last); show most-recent first #}
+            {% for frame in exc.frames|reverse %}
+              <li class="sw-frame {{ frame.in_app ? 'in-app' }}">
+                <span class="file">{{ frame.file ?: '?' }}{% if frame.line %}<span class="ln">:{{ frame.line }}{% if frame.col %}:{{ frame.col }}{% endif %}</span>{% endif %}</span>
+                {% if frame.function %}<span class="fn">{{ frame.function }}</span>{% endif %}
+                {% if frame.in_app %}<span class="tag">in-app</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if tags is not empty %}
+  <div class="sw-section">
+    <h3>Tags <span class="n">{{ tags|length }}</span></h3>
+    <div class="sw-tags">
+      {% for k, v in tags %}{% set tv = v is iterable ? v|json_encode : v %}<span class="sw-chip" title="{{ k }} = {{ tv }}"><b>{{ k }}</b> <span class="cv">{{ tv }}</span></span>{% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% for label, kv in {'User': logUser, 'Request': request} %}
+    {% if kv is not empty %}
+    <div class="sw-section">
+      <h3>{{ label }}</h3>
+      <table class="sw-kv"><tbody>
+        {% for k, v in kv %}<tr><td class="k">{{ k }}</td><td class="v">{{ v is iterable ? v|json_encode : v }}</td></tr>{% endfor %}
+      </tbody></table>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if breadcrumbs is not empty %}
+  <div class="sw-section">
+    <h3>Breadcrumbs <span class="n">{{ breadcrumbs|length }}</span></h3>
+    <ul class="sw-crumbs">
+      {% for c in breadcrumbs %}
+        <li class="sw-crumb">
+          <span class="ts">{{ c.timestamp }}</span>
+          <span class="cat">{{ c.category }}</span>
+          <span class="msg">{{ c.message }}</span>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% for label, blob in {'Extra': extraJson, 'Contexts': contextsJson, 'SDK': sdkJson} %}
+    {% if blob %}
+    <div class="sw-section">
+      <h3>{{ label }}</h3>
+      <pre class="sw-code">{{ blob }}</pre>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if rawContext %}
+  <div class="sw-section">
+    <details class="sw-raw">
+      <summary>Raw event payload</summary>
+      <pre class="sw-code">{{ rawContext }}</pre>
+    </details>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

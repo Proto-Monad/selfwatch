@@ -1,0 +1,86 @@
+{% extends 'admin.twig' %}
+
+{% set title %}Projects{% endset %}
+{% block pageTitle %}Projects - selfwatch{% endblock %}
+{% block pageDescription %}selfwatch projects and ingest tokens{% endblock %}
+
+{% block content %}
+<style>
+    .sw-projects { margin:8px 0 40px; max-width:980px; }
+    .sw-proj-card { border:1px solid #e4e7ec; border-radius:10px; padding:16px 18px; margin-bottom:14px; background:#fff; }
+    .sw-proj-head { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+    .sw-proj-head h3 { margin:0; font-size:16px; }
+    .sw-proj-id { color:#98a2b3; font-size:12px; }
+    .sw-proj-count { margin-left:auto; color:#667085; font-size:13px; }
+    .sw-token-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+    .sw-token-val { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:13px; background:#f8fafc; border:1px solid #e4e7ec;
+        border-radius:6px; padding:6px 10px; flex:1; min-width:280px; user-select:all; }
+    .sw-btn { border:1px solid #d0d5dd; background:#fff; color:#344054; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer; }
+    .sw-btn:hover { background:#f8fafc; }
+    .sw-btn-danger { border-color:#fda29b; color:#b42318; }
+    .sw-btn-danger:hover { background:#fef3f2; }
+    .sw-copied { color:#16a34a; font-size:12px; }
+    .sw-proj-hint { color:#667085; font-size:12px; margin-top:8px; }
+    .sw-proj-hint code { background:#f2f4f7; padding:1px 5px; border-radius:4px; font-family:ui-monospace,monospace; }
+    .sw-muted { color:#98a2b3; user-select:none; }
+    .sw-token-reveal { border:1px solid #b9e6c9; background:#f3fdf6; border-radius:8px; padding:10px 12px; margin-bottom:6px; }
+    .sw-reveal-label { color:#067647; font-size:12px; font-weight:600; margin-bottom:6px; }
+</style>
+
+<div class="sw-projects">
+    <h2 style="margin:6px 0 4px;">Projects</h2>
+    <div style="color:#667085;font-size:13px;margin-bottom:16px;">
+        Each project is a source of logs. Send logs to a project by POSTing to
+        <code style="background:#f2f4f7;padding:1px 5px;border-radius:4px;">{{ ingestUrl }}</code>
+        with its ingest token.
+    </div>
+
+    {% for p in projects %}
+    <div class="sw-proj-card">
+        <div class="sw-proj-head">
+            <h3>{{ p.name }}</h3>
+            <span class="sw-proj-id">#{{ p.idsite }}</span>
+            <span class="sw-proj-count">{{ p.count }} log entries</span>
+        </div>
+        {% if p.reveal %}
+            {# Shown exactly once, right after (re)generation. #}
+            <div class="sw-token-reveal">
+                <div class="sw-reveal-label">New ingest token — copy it now, it won't be shown again:</div>
+                <div class="sw-token-row">
+                    <span class="sw-token-val" id="tok-{{ p.idsite }}">{{ p.reveal }}</span>
+                    <button type="button" class="sw-btn" onclick="swCopy('tok-{{ p.idsite }}', this)">Copy</button>
+                </div>
+                <div class="sw-proj-hint">Header: <code>Authorization: Bearer {{ p.reveal }}</code></div>
+            </div>
+        {% else %}
+            <div class="sw-token-row">
+                <span class="sw-token-val sw-muted">{% if p.has_token %}•••••••• (stored hashed — regenerate to get a new one){% else %}No token yet{% endif %}</span>
+            </div>
+        {% endif %}
+        <div class="sw-token-row" style="margin-top:10px;">
+            <form method="post" action="index.php" style="display:inline;"
+                  onsubmit="return confirm('{% if p.has_token %}Regenerate the token for {{ p.name|e('js') }}? The old token will stop working immediately.{% else %}Generate an ingest token for {{ p.name|e('js') }}?{% endif %}');">
+                <input type="hidden" name="module" value="Logs">
+                <input type="hidden" name="action" value="regenerateToken">
+                <input type="hidden" name="idSite" value="{{ p.idsite }}">
+                <input type="hidden" name="period" value="{{ period }}">
+                <input type="hidden" name="date" value="{{ date }}">
+                <input type="hidden" name="nonce" value="{{ regenerateNonce }}">
+                <button type="submit" class="sw-btn {% if p.has_token %}sw-btn-danger{% endif %}">{{ p.has_token ? 'Regenerate token' : 'Generate token' }}</button>
+            </form>
+            <a class="sw-btn" href="index.php?module=Logs&action=index&idSite={{ p.idsite }}&period={{ period }}&date={{ date }}">View logs</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+function swCopy(id, btn) {
+    var el = document.getElementById(id);
+    var text = el.textContent;
+    var done = function () { var old = btn.textContent; btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = old; }, 1200); };
+    if (navigator.clipboard) { navigator.clipboard.writeText(text).then(done, done); }
+    else { var r = document.createRange(); r.selectNode(el); window.getSelection().removeAllRanges(); window.getSelection().addRange(r); document.execCommand('copy'); done(); }
+}
+</script>
+{% endblock %}

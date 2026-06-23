@@ -27,11 +27,6 @@ class Menu extends \Piwik\Plugin\Menu
 
     public function configureAdminMenu(MenuAdmin $menu)
     {
-        if (Development::isEnabled() && Piwik::isUserHasSomeAdminAccess()) {
-            $menu->addDevelopmentItem(
-                'LanguagesManager_TranslationSearch',
-                $this->urlForAction('searchTranslation')
-            );
-        }
+        // selfwatch: the translation-search development page is not shown.
     }
 }

@@ -24,7 +24,6 @@ use Piwik\Option;
 use Piwik\Piwik;
 use Piwik\Plugin\Manager as PluginManager;
 use Piwik\Plugins\CoreVue\CoreVue;
-use Piwik\Plugins\Marketplace\Plugins;
 use Piwik\Request;
 use Piwik\SettingsPiwik;
 use Piwik\SettingsServer;
@@ -48,11 +47,12 @@ class Controller extends \Piwik\Plugin\Controller
     private $updater;
 
     /**
-     * @var Plugins
+     * selfwatch: Marketplace removed, so this is always null.
+     * @var mixed|null
      */
     private $marketplacePlugins;
 
-    public function __construct(Updater $updater, ?Plugins $marketplacePlugins = null)
+    public function __construct(Updater $updater, $marketplacePlugins = null)
     {
         $this->updater = $updater;
         $this->marketplacePlugins = $marketplacePlugins;

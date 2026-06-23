@@ -14,7 +14,6 @@ use Piwik\DbHelper;
 use Piwik\Piwik;
 use Piwik\Plugin\ReleaseChannels;
 use Piwik\Plugins\CoreAdminHome\Controller as CoreAdminController;
-use Piwik\Plugins\Marketplace\UpdateCommunication as PluginUpdateCommunication;
 use Piwik\Settings\Setting;
 use Piwik\Settings\FieldConfig;
 use Piwik\SettingsPiwik;
@@ -61,8 +60,8 @@ class SystemSettings extends \Piwik\Settings\Plugin\SystemSettings
             && SettingsPiwik::isMultiServerEnvironment() === false);
 
         $this->sendPluginUpdateEmail = $this->createSendPluginUpdateEmail();
-        $this->sendPluginUpdateEmail->setIsWritableByCurrentUser($isWritable
-            && PluginUpdateCommunication::canBeEnabled());
+        // selfwatch: Marketplace removed; plugin-update email notifications can't be enabled.
+        $this->sendPluginUpdateEmail->setIsWritableByCurrentUser(false);
 
         $dbSettings = new Settings();
         if ($isWritable && $dbSettings->getUsedCharset() !== 'utf8mb4' && DbHelper::getDefaultCharset() === 'utf8mb4') {

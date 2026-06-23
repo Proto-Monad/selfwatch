@@ -91,7 +91,8 @@ class Tasks extends \Piwik\Plugin\Tasks
             $this->weekly('updateSpammerList');
         }
 
-        $this->scheduleTrackingCodeReminderChecks();
+        // selfwatch: no JavaScript tracking, so we don't email users that their site is
+        // "missing tracking code" (that reminder linked to the removed tracking-code page).
     }
 
     public function purgeInvalidationsForDeletedSites()

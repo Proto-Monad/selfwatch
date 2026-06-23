@@ -24,9 +24,6 @@ use Piwik\Piwik;
 use Piwik\Plugin;
 use Piwik\Plugins\CorePluginsAdmin\Model\TagManagerTeaser;
 use Piwik\Plugins\Login\PasswordVerifier;
-use Piwik\Plugins\Marketplace\Marketplace;
-use Piwik\Plugins\Marketplace\Controller as MarketplaceController;
-use Piwik\Plugins\Marketplace\Plugins;
 use Piwik\SettingsPiwik;
 use Piwik\SettingsServer;
 use Piwik\Translation\Translator;
@@ -39,6 +36,10 @@ class Controller extends Plugin\ControllerAdmin
     public const ACTIVATE_NONCE = 'CorePluginsAdmin.activatePlugin';
     public const DEACTIVATE_NONCE = 'CorePluginsAdmin.deactivatePlugin';
     public const UNINSTALL_NONCE = 'CorePluginsAdmin.uninstallPlugin';
+    // selfwatch: these nonces were defined by the (removed) Marketplace controller; the plugin
+    // upload flow still uses them, so they are kept here with their original values.
+    public const INSTALL_NONCE = 'Marketplace.installPlugin';
+    public const UPDATE_NONCE = 'Marketplace.updatePlugin';
 
     /**
      * @var Translator
@@ -71,7 +72,7 @@ class Controller extends Plugin\ControllerAdmin
 
     /**
      * Controller constructor.
-     * @param Plugins $marketplacePlugins
+     * @param mixed|null $marketplacePlugins  selfwatch: always null (Marketplace removed)
      */
     public function __construct(
         Translator $translator,
@@ -88,9 +89,6 @@ class Controller extends Plugin\ControllerAdmin
 
         if (!empty($marketplacePlugins)) {
             $this->marketplacePlugins = $marketplacePlugins;
-        } elseif (Marketplace::isMarketplaceEnabled()) {
-            // we load it manually as marketplace might not be loaded
-            $this->marketplacePlugins = StaticContainer::get('Piwik\Plugins\Marketplace\Plugins');
         }
 
         parent::__construct();
@@ -105,7 +103,7 @@ class Controller extends Plugin\ControllerAdmin
             throw new \Exception('Plugin upload disabled by config');
         }
 
-        Nonce::checkNonce(MarketplaceController::INSTALL_NONCE);
+        Nonce::checkNonce(self::INSTALL_NONCE);
 
         if (
             !$this->passwordVerify->isPasswordCorrect(
@@ -203,7 +201,7 @@ class Controller extends Plugin\ControllerAdmin
         $this->securityPolicy->addPolicy('img-src', '*.matomo.org');
         $this->securityPolicy->addPolicy('default-src', '*.matomo.org');
 
-        $view->updateNonce = Nonce::getNonce(MarketplaceController::UPDATE_NONCE);
+        $view->updateNonce = Nonce::getNonce(self::UPDATE_NONCE);
         $view->activateNonce = Nonce::getNonce(static::ACTIVATE_NONCE);
         $view->uninstallNonce = Nonce::getNonce(static::UNINSTALL_NONCE);
         $view->deactivateNonce = Nonce::getNonce(static::DEACTIVATE_NONCE);
@@ -214,28 +212,16 @@ class Controller extends Plugin\ControllerAdmin
         $view->themeEnabled = $this->pluginManager->getThemeEnabled()->getPluginName();
 
         $view->pluginNamesHavingSettings = array_keys($this->settingsProvider->getAllSystemSettings());
-        $view->isMarketplaceEnabled = Marketplace::isMarketplaceEnabled();
+        $view->isMarketplaceEnabled = false; // selfwatch: Marketplace plugin removed
         $view->isPluginsAdminEnabled = CorePluginsAdmin::isPluginsAdminEnabled();
 
         $view->marketplacePluginNames = [];
         $view->pluginsHavingUpdate    = [];
         $view->pluginUpdateNonces     = [];
 
-        if (Marketplace::isMarketplaceEnabled() && $this->marketplacePlugins) {
-            try {
-                $view->marketplacePluginNames = $this->marketplacePlugins->getAvailablePluginNames($themesOnly);
-                $view->pluginsHavingUpdate = $this->marketplacePlugins->getPluginsHavingUpdate();
-                foreach ($view->pluginsHavingUpdate as $name => $plugin) {
-                    $view->pluginUpdateNonces[$name] = Nonce::getNonce($plugin['name']);
-                }
-            } catch (Exception $e) {
-                // curl exec connection error (ie. server not connected to internet)
-            }
-        }
-
         $view->isPluginUploadEnabled = CorePluginsAdmin::isPluginUploadEnabled();
         $view->uploadLimit = SettingsServer::getPostMaxUploadSize();
-        $view->installNonce = Nonce::getNonce(MarketplaceController::INSTALL_NONCE);
+        $view->installNonce = Nonce::getNonce(self::INSTALL_NONCE);
 
         return $view;
     }
@@ -462,9 +448,7 @@ class Controller extends Plugin\ControllerAdmin
             Notification\Manager::notify('CorePluginsAdmin_PluginActivated', $notification);
 
             $redirectTo = Common::getRequestVar('redirectTo', '', 'string');
-            if (!empty($redirectTo) && $redirectTo === 'marketplace') {
-                $this->redirectToIndex('Marketplace', 'overview');
-            } elseif (!empty($redirectTo) && $redirectTo === 'tagmanager') {
+            if (!empty($redirectTo) && $redirectTo === 'tagmanager') {
                 $this->redirectToIndex('TagManager', 'manageContainers');
             } elseif (!empty($redirectTo) && $redirectTo === 'referrer') {
                 $this->redirectAfterModification($redirectAfter);

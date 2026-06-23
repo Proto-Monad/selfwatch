@@ -239,8 +239,18 @@ class SettingsPiwik
             return false;
         }
 
-        // Check that the database section is really set, ie. file is not empty
-        if (empty(Config::getInstance()->database['username'])) {
+        // Check that the database section is really set, ie. file is not empty.
+        // SQLite is file-based and has no username, so its "configured" signal is the
+        // database path (dbname); server engines (MySQL/MariaDB) require a username.
+        $database = Config::getInstance()->database;
+        $adapter  = strtolower($database['adapter'] ?? '');
+        $isSqlite = strpos($adapter, 'sqlite') !== false;
+
+        if ($isSqlite) {
+            if (empty($database['dbname'])) {
+                return false;
+            }
+        } elseif (empty($database['username'])) {
             return false;
         }
         return true;

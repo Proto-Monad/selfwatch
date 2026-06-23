@@ -9,9 +9,6 @@
 
 namespace Piwik\Plugins\CoreVisualizations;
 
-use Piwik\Container\StaticContainer;
-use Piwik\Plugins\CoreVisualizations\FeatureFlags\PlotLinesTweaks;
-use Piwik\Plugins\FeatureFlags\FeatureFlagManager;
 use Piwik\ViewDataTable\Manager as ViewDataTableManager;
 
 require_once PIWIK_INCLUDE_PATH . '/plugins/CoreVisualizations/JqplotDataGenerator.php';
@@ -32,26 +29,12 @@ class CoreVisualizations extends \Piwik\Plugin
             'AssetManager.getJavaScriptFiles'        => 'getJsFiles',
             'Translate.getClientSideTranslationKeys' => 'getClientSideTranslationKeys',
             'UsersManager.deleteUser'                => 'deleteUser',
-            'Template.bodyClass'                     => 'addBodyClass',
         );
     }
 
     public function deleteUser($userLogin)
     {
         ViewDataTableManager::clearUserViewDataTableParameters($userLogin);
-    }
-
-    public function addBodyClass(&$out, $type)
-    {
-        if (!in_array($type, ['dashboard', 'widgetized'], true)) {
-            return;
-        }
-
-        $featureFlagManager = StaticContainer::get(FeatureFlagManager::class);
-
-        if ($featureFlagManager->isFeatureActive(PlotLinesTweaks::class)) {
-            $out .= ' plotlines-tweaks-enabled';
-        }
     }
 
     public function getStylesheetFiles(&$stylesheets)

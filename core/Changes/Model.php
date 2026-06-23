@@ -115,16 +115,14 @@ class Model
             $params[] = $change['link'];
         }
 
-        $insertSql = 'INSERT IGNORE INTO ' . $table . ' (' . implode(',', $fields) . ') 
-                      VALUES (' . Common::getSqlStringFieldsArray($params) . ')';
-
+        // Portable insert via DBAL. A duplicate (unique plugin/version/title) is ignored,
+        // mirroring the previous INSERT IGNORE; a missing table is treated as a no-op.
         try {
-            $this->db->query($insertSql, $params);
-        } catch (\Exception $e) {
-            if (Db::get()->isErrNo($e, Migration\Db::ERROR_CODE_TABLE_NOT_EXISTS)) {
-                return;
-            }
-            throw $e;
+            \Piwik\Db\Dbal\Connection::get()->insert($table, array_combine($fields, $params));
+        } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+            // change already recorded
+        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+            return;
         }
     }
 

@@ -401,12 +401,7 @@ class Sparklines extends ViewDataTable
                 $evolution = $firstRow->getColumn($col . $evolutionColumnNameSuffix);
                 $trend = $firstRow->getColumn($col . $trendColumnNameSuffix);
                 if ($evolution !== false) {
-                    $evolutions[] = [
-                        'percent' => ltrim($evolution, '+'),
-                        'trend' => $trend,
-                        'tooltip' => '',
-                        'isLowerValueBetter' => Metrics::isLowerValueBetter($col),
-                    ];
+                    $evolutions[] = ['percent' => ltrim($evolution, '+'), 'trend' => $trend, 'tooltip' => ''];
                 }
             }
 

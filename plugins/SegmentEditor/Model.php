@@ -272,21 +272,33 @@ class Model
 
     public static function install()
     {
-        $segmentTable = "`idsegment` INT(11) NOT NULL AUTO_INCREMENT,
-                         `name` VARCHAR(255) NOT NULL,
-                         `definition` TEXT NOT NULL,
-                         `hash` CHAR(32) NULL,
-                         `login` VARCHAR(100) NOT NULL,
-                         `enable_all_users` tinyint(4) NOT NULL default 0,
-                         `enable_only_idsite` INTEGER(11) NULL,
-                         `auto_archive` tinyint(4) NOT NULL default 0,
-                         `ts_created` TIMESTAMP NULL,
-                         `ts_last_edit` TIMESTAMP NULL,
-                         `starred` tinyint(4) NOT NULL default 0,
-                         `starred_by` VARCHAR(100) NULL default NULL,
-                         `deleted` tinyint(4) NOT NULL default 0,
-                         PRIMARY KEY (`idsegment`)";
+        // Build the segment table via Doctrine DBAL so the DDL is generated for whichever
+        // database engine is configured (no hand-written, engine-specific SQL).
+        $conn   = \Piwik\Db\Dbal\Connection::get();
+        $schema = new \Doctrine\DBAL\Schema\Schema();
+        $table  = $schema->createTable(Common::prefixTable(self::$rawPrefix));
 
-        DbHelper::createTable(self::$rawPrefix, $segmentTable);
+        $table->addColumn('idsegment', 'integer', ['autoincrement' => true]);
+        $table->addColumn('name', 'string', ['length' => 255]);
+        $table->addColumn('definition', 'text');
+        $table->addColumn('hash', 'string', ['length' => 32, 'fixed' => true, 'notnull' => false]);
+        $table->addColumn('login', 'string', ['length' => 100]);
+        $table->addColumn('enable_all_users', 'smallint', ['default' => 0]);
+        $table->addColumn('enable_only_idsite', 'integer', ['notnull' => false]);
+        $table->addColumn('auto_archive', 'smallint', ['default' => 0]);
+        $table->addColumn('ts_created', 'datetime', ['notnull' => false]);
+        $table->addColumn('ts_last_edit', 'datetime', ['notnull' => false]);
+        $table->addColumn('starred', 'smallint', ['default' => 0]);
+        $table->addColumn('starred_by', 'string', ['length' => 100, 'notnull' => false]);
+        $table->addColumn('deleted', 'smallint', ['default' => 0]);
+        $table->setPrimaryKey(['idsegment']);
+
+        foreach ($schema->toSql($conn->getDatabasePlatform()) as $sql) {
+            try {
+                $conn->executeStatement($sql);
+            } catch (\Exception $e) {
+                // Table/index already exists - installation is idempotent.
+            }
+        }
     }
 }

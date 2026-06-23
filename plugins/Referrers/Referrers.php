@@ -130,8 +130,6 @@ class Referrers extends \Piwik\Plugin
         $translationKeys[] = 'Referrers_URLCampaignBuilderResult';
         $translationKeys[] = 'Referrers_GenerateUrl';
         $translationKeys[] = 'Goals_Optional';
-        $translationKeys[] = 'Referrers_URLCampaignBuilderIntro';
-        $translationKeys[] = 'Referrers_URLCampaignBuilder';
     }
 
     public function getJsFiles(&$jsFiles)

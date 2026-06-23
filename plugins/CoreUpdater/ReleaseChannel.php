@@ -12,7 +12,6 @@ namespace Piwik\Plugins\CoreUpdater;
 use Piwik\Common;
 use Piwik\Db;
 use Piwik\Http;
-use Piwik\Plugins\Marketplace\Api\Client;
 use Piwik\Plugins\SitesManager\API;
 use Piwik\UpdateCheck\ReleaseChannel as BaseReleaseChannel;
 use Piwik\Url;
@@ -32,7 +31,9 @@ abstract class ReleaseChannel extends BaseReleaseChannel
             'timezone'        => API::getInstance()->getDefaultTimezone(),
         );
 
-        $url = Client::getApiServiceUrl()
+        // selfwatch: Marketplace removed; the Matomo API base URL is inlined here (the update
+        // check against matomo.org is not meaningful for the fork but must not error).
+        $url = 'https://api.matomo.org'
             . '/1.0/getLatestVersion/'
             . '?' . Http::buildQuery($parameters);
 

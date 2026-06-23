@@ -5,8 +5,6 @@
         "NoDataHttpTrackingApi": "API de seguiment HTTP",
         "SiteWithoutDataBackToMatomo": "Torna al Matomo",
         "SiteWithoutDataInstallWithX": "Instal·la amb %1$s",
-        "SiteWithoutDataStepByStepGuide": "Guia pas a pas",
-        "AIChatbotsContentPagesTitle": "Pàgines",
-        "ContentUrl": "URL"
+        "SiteWithoutDataStepByStepGuide": "Guia pas a pas"
     }
 }

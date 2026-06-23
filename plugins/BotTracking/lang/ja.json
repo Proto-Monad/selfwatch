@@ -2,8 +2,6 @@
     "BotTracking": {
         "PageUrl": "ページ URL",
         "NoDataHttpTrackingApi": "HTTPトラッキング API",
-        "SiteWithoutDataBackToMatomo": "Matomo へ戻る",
-        "AIChatbotsContentPagesTitle": "ページ",
-        "ContentUrl": "URL"
+        "SiteWithoutDataBackToMatomo": "Matomo へ戻る"
     }
 }

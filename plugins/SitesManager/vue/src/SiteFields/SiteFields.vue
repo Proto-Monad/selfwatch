@@ -23,15 +23,7 @@
               <span class="title">{{ translate('SitesManager_Type') }}:</span>
               {{ currentType.name }}
             </li>
-            <li v-show="theSite.idsite && howToSetupUrl">
-              <a
-                :target="isInternalSetupUrl ? '_self' : '_blank'"
-                :title="translate('SitesManager_ShowTrackingTag')"
-                :href="setupUrl"
-              >
-                {{ translate('SitesManager_ShowTrackingTag') }}
-              </a>
-            </li>
+            <!-- selfwatch: no JavaScript tracking, so the "View Tracking code" link is removed. -->
           </ul>
         </div>
         <div class="col m4">

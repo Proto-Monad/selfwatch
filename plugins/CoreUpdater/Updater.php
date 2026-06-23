@@ -21,9 +21,6 @@ use Piwik\Http;
 use Piwik\Option;
 use Piwik\Plugin\Manager as PluginManager;
 use Piwik\Plugin\ReleaseChannels;
-use Piwik\Plugins\CorePluginsAdmin\PluginInstaller;
-use Piwik\Plugins\Marketplace\API as MarketplaceApi;
-use Piwik\Plugins\Marketplace\Marketplace;
 use Piwik\SettingsServer;
 use Piwik\Translation\Translator;
 use Piwik\Unzip;
@@ -158,47 +155,9 @@ class Updater
     {
         $messages = [];
 
-        if (!Marketplace::isMarketplaceEnabled()) {
-            $messages[] = 'Marketplace is disabled. Not updating any plugins.';
-            // prevent error Entry "Piwik\Plugins\Marketplace\Api\Client" cannot be resolved: Entry "Piwik\Plugins\Marketplace\Api\Service" cannot be resolved
-        } else {
-            if (!isset($newVersion)) {
-                $newVersion = Version::VERSION;
-            }
-
-            // we also need to make sure to create a new instance here as otherwise we would change the "global"
-            // environment, but we only want to change piwik version temporarily for this task here
-            $environment = StaticContainer::getContainer()->make('Piwik\Plugins\Marketplace\Environment');
-            $environment->setPiwikVersion($newVersion);
-            /** @var \Piwik\Plugins\Marketplace\Api\Client $marketplaceClient */
-            $marketplaceClient = StaticContainer::getContainer()->make('Piwik\Plugins\Marketplace\Api\Client', [
-                'environment' => $environment,
-            ]);
-
-            try {
-                $messages[]    = $this->translator->translate('CoreUpdater_CheckingForPluginUpdates');
-                $pluginManager = PluginManager::getInstance();
-                $pluginManager->loadAllPluginsAndGetTheirInfo();
-                $loadedPlugins = $pluginManager->getLoadedPlugins();
-
-                $marketplaceClient->clearAllCacheEntries();
-                $pluginsWithUpdate = $marketplaceClient->checkUpdates($loadedPlugins);
-
-                foreach ($pluginsWithUpdate as $pluginWithUpdate) {
-                    $pluginName      = $pluginWithUpdate['name'];
-                    $messages[]      = $this->translator->translate(
-                        'CoreUpdater_UpdatingPluginXToVersionY',
-                        [$pluginName, $pluginWithUpdate['version']]
-                    );
-                    $pluginInstaller = new PluginInstaller($marketplaceClient);
-                    $pluginInstaller->installOrUpdatePluginFromMarketplace($pluginName);
-                }
-            } catch (MarketplaceApi\Exception $e) {
-                // there is a problem with the connection to the server, ignore for now
-            } catch (Exception $e) {
-                throw new UpdaterException($e, $messages);
-            }
-        }
+        // selfwatch: the Marketplace plugin was removed, so there are no marketplace plugin
+        // updates to apply after a core update.
+        $messages[] = 'Marketplace is not available. Not updating any plugins.';
 
         // get a list of previously activated plugins and try to reactivate them if there are no missing requirements
         $previouslyActivePlugins = Option::get('OneClickUpdate_ActivatedPlugins');
@@ -339,40 +298,8 @@ class Updater
         return $disabledPluginNames;
     }
 
-    /**
-     * Some dependency classes move to a different file path between Matomo major versions (for example
-     * psr/log moved from Psr/Log to src). Loading them now - while the current files are still in place -
-     * keeps them available to this already running process after installNewFiles() has replaced the files.
-     * Otherwise the initialised autoloader can no longer resolve them from their old paths and the rest of
-     * the update request fails (e.g. "Class Psr\Log\NullLogger not found").
-     *
-     * This is only needed for the one-click update from Matomo 5 to Matomo 6 (the upgrade in which psr/log
-     * relocates). It can be removed again in Matomo 6: once an install runs Matomo 6 the classes are already
-     * at their new location, so no preloading is required for subsequent updates.
-     */
-    private function preloadRelocatedClasses(): void
-    {
-        $classesToPreload = [
-            'Psr\Log\LoggerInterface',
-            'Psr\Log\AbstractLogger',
-            'Psr\Log\NullLogger',
-            'Psr\Log\LoggerTrait',
-            'Psr\Log\LogLevel',
-            'Psr\Log\InvalidArgumentException',
-            'Psr\Log\LoggerAwareInterface',
-            'Psr\Log\LoggerAwareTrait',
-        ];
-
-        foreach ($classesToPreload as $classToPreload) {
-            class_exists($classToPreload) || interface_exists($classToPreload) || trait_exists($classToPreload);
-        }
-    }
-
     private function installNewFiles($extractedArchiveDirectory)
     {
-        // Load classes that move to a different file path in the new version before any files are replaced.
-        $this->preloadRelocatedClasses();
-
         // Make sure the execute bit is set for this shell script
         if (!Rules::isBrowserTriggerEnabled()) {
             @chmod($extractedArchiveDirectory . '/misc/cron/archive.sh', 0755);

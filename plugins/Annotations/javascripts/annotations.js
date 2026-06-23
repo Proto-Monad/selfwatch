@@ -46,8 +46,6 @@
 
             var ajaxRequest = new ajaxHelper();
             ajaxRequest.addParams(ajaxParams, 'get');
-            // Do not need to include the period parameter as this is not used in the endpoint
-            ajaxRequest.removeDefaultParameter('period');
             ajaxRequest.withTokenInUrl();
             ajaxRequest.setCallback(callback);
             ajaxRequest.setFormat('html');
@@ -71,8 +69,6 @@
 
             var ajaxRequest = new ajaxHelper();
             ajaxRequest.addParams(ajaxParams, 'get');
-            // Do not need to include the period parameter as this is not used in the endpoint
-            ajaxRequest.removeDefaultParameter('period');
             ajaxRequest.withTokenInUrl();
             ajaxRequest.setCallback(callback);
             ajaxRequest.setFormat('html');
@@ -554,7 +550,8 @@
 
                 loading.css('visibility', 'hidden');
 
-                placeAnnotationManager(manager, domElem);
+                // add & show annotation manager
+                manager.insertAfter($('.evolution-annotations', domElem));
 
                 manager.slideDown('slow', function () {
                     loading.hide().css('visibility', 'visible');
@@ -594,43 +591,10 @@
         });
     };
 
-    var getPlotLinesLegendFooter = function (graphElem) {
-        var legendFooter = $('.jqplot-legend-footer', graphElem);
-
-        if ($('body').hasClass('plotlines-tweaks-enabled') && legendFooter.length) {
-            return legendFooter;
-        }
-
-        return $();
-    };
-
-    var placeEvolutionAnnotations = function (annotations, graphElem) {
-        var legendFooter = getPlotLinesLegendFooter(graphElem);
-
-        if (legendFooter.length) {
-            annotations.insertBefore(legendFooter);
-            return;
-        }
-
-        annotations.insertBefore($('.dataTableFooterNavigation', graphElem));
-    };
-
-    var placeAnnotationManager = function (manager, graphElem) {
-        var legendFooter = getPlotLinesLegendFooter(graphElem);
-
-        if (legendFooter.length) {
-            manager.insertBefore(legendFooter);
-            return;
-        }
-
-        manager.insertAfter($('.evolution-annotations', graphElem));
-    };
-
-    // make annotation helpers globally accessible
+// make showAnnotationViewer, placeEvolutionIcons & annotationsApi globally accessible
     piwik.annotations = {
         showAnnotationViewer: showAnnotationViewer,
         placeEvolutionIcons: placeEvolutionIcons,
-        placeEvolutionAnnotations: placeEvolutionAnnotations,
         api: annotationsApi
     };
 

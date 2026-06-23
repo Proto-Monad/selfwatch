@@ -3,6 +3,7 @@
 namespace Piwik\Plugins\Diagnostics\Diagnostic;
 
 use Piwik\Db;
+use Piwik\Db\Schema;
 use Piwik\Piwik;
 use Piwik\SettingsPiwik;
 use Piwik\Translation\Translator;
@@ -30,6 +31,10 @@ class DbMaxPacket implements Diagnostic
     {
         if (!SettingsPiwik::isMatomoInstalled()) {
             return array(); // only possible to perform check once we have DB connection
+        }
+
+        if (Schema::getInstance()->getDatabaseType() === 'SQLite') {
+            return array(); // MySQL server variable; not applicable to SQLite
         }
 
         $maxPacketBytes = Db::fetchRow("SHOW VARIABLES LIKE 'max_allowed_packet'");

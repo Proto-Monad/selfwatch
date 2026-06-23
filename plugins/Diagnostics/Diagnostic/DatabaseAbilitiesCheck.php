@@ -12,6 +12,7 @@ namespace Piwik\Plugins\Diagnostics\Diagnostic;
 use Piwik\Common;
 use Piwik\Config;
 use Piwik\Db;
+use Piwik\Db\Schema;
 use Piwik\DbHelper;
 use Piwik\SettingsPiwik;
 use Piwik\Translation\Translator;
@@ -36,6 +37,12 @@ class DatabaseAbilitiesCheck implements Diagnostic
     {
         if (!SettingsPiwik::isMatomoInstalled()) {
             // Skip the diagnostic if Matomo is being installed
+            return [];
+        }
+
+        // selfwatch: these are MySQL-specific abilities (utf8mb4 charset, collation, LOAD DATA
+        // INFILE, MySQL temp tables, SHOW/@@... introspection). They don't apply to SQLite.
+        if (Schema::getInstance()->getDatabaseType() === 'SQLite') {
             return [];
         }
 

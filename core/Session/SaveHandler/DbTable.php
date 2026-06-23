@@ -87,17 +87,28 @@ class DbTable implements \SessionHandlerInterface
     public function read($id)
     {
         $id = $this->hashSessionId($id);
-        $sql = 'SELECT ' . $this->config['dataColumn'] . ' FROM `' . $this->config['name'] . '`'
-            . ' WHERE ' . $this->config['primary'] . ' = ?'
-            . ' AND ' . $this->config['modifiedColumn'] . ' + ' . $this->config['lifetimeColumn'] . ' >= ?';
 
-        $result = $this->fetchOne($sql, [$id, time()]);
+        // Read via DBAL with an explicitly typed integer parameter. This matters on SQLite:
+        // PDO binds parameters as text by default, and SQLite ranks every INTEGER below every
+        // TEXT value, so "(modified + lifetime) >= '<unix ts>'" would always be false and the
+        // session would never be found (breaking login with a "token mismatch"). Binding the
+        // timestamp as an integer keeps the comparison numeric on every engine.
+        $qb = \Piwik\Db\Dbal\Connection::get()->createQueryBuilder();
+        $qb->select($this->config['dataColumn'])
+            ->from($this->config['name'])
+            ->where($this->config['primary'] . ' = :id')
+            ->andWhere($this->config['modifiedColumn'] . ' + ' . $this->config['lifetimeColumn'] . ' >= :now')
+            ->setParameter('id', $id)
+            ->setParameter('now', time(), \Doctrine\DBAL\ParameterType::INTEGER);
 
-        if (!$result) {
-            $result = '';
+        try {
+            $result = $qb->executeQuery()->fetchOne();
+        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+            $this->migrateToDbSessionTable();
+            $result = $qb->executeQuery()->fetchOne();
         }
 
-        return $result;
+        return $result === false ? '' : $result;
     }
 
     private function fetchOne($sql, $bind)
@@ -140,18 +151,34 @@ class DbTable implements \SessionHandlerInterface
     {
         $id = $this->hashSessionId($id);
 
-        $sql = 'INSERT INTO ' . $this->config['name']
-            . ' (' . $this->config['primary'] . ','
-            . $this->config['modifiedColumn'] . ','
-            . $this->config['lifetimeColumn'] . ','
-            . $this->config['dataColumn'] . ')'
-            . ' VALUES (?,?,?,?)'
-            . ' ON DUPLICATE KEY UPDATE '
-            . $this->config['modifiedColumn'] . ' = ?,'
-            . $this->config['lifetimeColumn'] . ' = ?,'
-            . $this->config['dataColumn'] . ' = ?';
+        $table = $this->config['name'];
+        $now   = time();
 
-        $this->query($sql, [$id, time(), $this->maxLifetime, $data, time(), $this->maxLifetime, $data]);
+        $changed = [
+            $this->config['modifiedColumn'] => $now,
+            $this->config['lifetimeColumn'] => $this->maxLifetime,
+            $this->config['dataColumn']     => $data,
+        ];
+
+        // Portable upsert via DBAL (replaces MySQL's INSERT ... ON DUPLICATE KEY UPDATE):
+        // update the existing row, and insert it if it doesn't exist yet.
+        $conn = \Piwik\Db\Dbal\Connection::get();
+
+        try {
+            $updated = $conn->update($table, $changed, [$this->config['primary'] => $id]);
+
+            if (!$updated) {
+                try {
+                    $conn->insert($table, array_merge([$this->config['primary'] => $id], $changed));
+                } catch (\Doctrine\DBAL\Exception\UniqueConstraintViolationException $e) {
+                    // A concurrent request created the row first - update it instead.
+                    $conn->update($table, $changed, [$this->config['primary'] => $id]);
+                }
+            }
+        } catch (\Doctrine\DBAL\Exception\TableNotFoundException $e) {
+            $this->migrateToDbSessionTable();
+            $this->write($id, $data);
+        }
 
         return true;
     }

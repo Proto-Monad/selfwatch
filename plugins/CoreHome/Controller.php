@@ -24,7 +24,6 @@ use Piwik\Plugin\Report;
 use Piwik\Plugins\FeatureFlags\FeatureFlagManager;
 use Piwik\Plugins\FeatureFlags\FeatureFlags\Example;
 use Piwik\Plugins\FeatureFlags\Storage\ConfigFeatureFlagStorage;
-use Piwik\Plugins\Marketplace\Marketplace;
 use Piwik\SettingsPiwik;
 use Piwik\Widget\Widget;
 use Piwik\Plugins\CoreHome\DataTableRowAction\MultiRowEvolution;
@@ -191,11 +190,6 @@ class Controller extends \Piwik\Plugin\Controller
 
     protected function getDefaultIndexView()
     {
-        if (SettingsPiwik::isInternetEnabled() && Marketplace::isMarketplaceEnabled()) {
-            $this->securityPolicy->addPolicy('img-src', '*.matomo.org');
-            $this->securityPolicy->addPolicy('default-src', '*.matomo.org');
-        }
-
         $view = new View('@CoreHome/getDefaultIndexView');
         $this->setGeneralVariablesView($view);
         $view->showMenu = true;
@@ -233,9 +227,12 @@ class Controller extends \Piwik\Plugin\Controller
 
     public function index()
     {
-        $this->setDateTodayIfWebsiteCreatedToday();
-        $view = $this->getDefaultIndexView();
-        return $view->render();
+        // selfwatch: the home page is the Logs viewer, not the analytics dashboard.
+        Piwik::redirectToModule('Logs', 'index', [
+            'idSite' => $this->idSite,
+            'period' => Common::getRequestVar('period', 'day', 'string'),
+            'date'   => Common::getRequestVar('date', 'today', 'string'),
+        ]);
     }
 
     //  --------------------------------------------------------

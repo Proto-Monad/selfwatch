@@ -1,8 +1,6 @@
 {
     "BotTracking": {
         "PageUrl": "Lehe URL",
-        "SiteWithoutDataBackToMatomo": "Tagasi Matomosse",
-        "AIChatbotsContentPagesTitle": "Leheküljed",
-        "ContentUrl": "URL"
+        "SiteWithoutDataBackToMatomo": "Tagasi Matomosse"
     }
 }

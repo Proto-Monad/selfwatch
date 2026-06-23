@@ -2,8 +2,6 @@
     "BotTracking": {
         "PageUrl": "آدرس صفحه",
         "NoDataHttpTrackingApi": "API ردیابی HTTP",
-        "SiteWithoutDataBackToMatomo": "بازگشت به Matomo",
-        "AIChatbotsContentPagesTitle": "صفحه‌ها",
-        "ContentUrl": "آدرس"
+        "SiteWithoutDataBackToMatomo": "بازگشت به Matomo"
     }
 }

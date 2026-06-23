@@ -1,133 +1,158 @@
-# Matomo (formerly Piwik) - matomo.org
+# selfwatch
 
-[![Latest Stable Version](https://poser.pugx.org/matomo/matomo/v/stable)](https://matomo.org/download/)
-[![Latest Unstable Version](https://poser.pugx.org/matomo/matomo/v/unstable)](https://builds.matomo.org/)
-[![License](https://poser.pugx.org/piwik/piwik/license)](https://matomo.org/free-software/)
+**Self-hosted log & event tracking.**
 
-## Code Status
+selfwatch is a self-hosted platform for collecting, searching and alerting on logs and error
+events from any source — PHP, Python, Rust, JavaScript, or plain `curl`. It speaks a
+**Sentry-compatible ingestion API**, so existing Sentry SDKs (and the selfwatch SDKs) can
+point at your own server with just a DSN change, and your data never leaves your infrastructure.
 
-[![Matomo Tests](https://github.com/matomo-org/matomo/actions/workflows/matomo-tests.yml/badge.svg)](https://github.com/matomo-org/matomo/actions/workflows/matomo-tests.yml)
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/matomo-org/matomo.svg)](http://isitmaintained.com/project/matomo-org/matomo "Percentage of issues still open")
+It is a focused fork of [Matomo](https://matomo.org). The analytics plugins are gone; what remains is a log tracker.
 
-## Description
+---
 
-Matomo is the leading Free/Libre open analytics platform.
+## Features
 
-Matomo is a full-featured PHP MySQL software program that you download and install on your own webserver.
-At the end of the five-minute installation process, you will be given a JavaScript code.
-Simply copy and paste this tag on websites you wish to track and access your analytics reports in real-time.
+- **Sentry-compatible ingestion** — `POST /api/{project}/store/` (single event) and
+  `/api/{project}/envelope/`, with thorough validation, normalization and verbose, correlated
+  ingest logging. A simpler native endpoint (`ingest.php`) is also available.
+- **First-class SDKs** — [PHP](https://github.com/Proto-Monad/selfwatch-php-sdk),
+  [JavaScript/Node](https://github.com/Proto-Monad/selfwatch-js-sdk) and
+  [Rust](https://github.com/Proto-Monad/selfwatch-rust-sdk), all write-only and transport-safe
+  (logging never crashes your app).
+- **A real log viewer** — dense, filterable table (level · source · environment · platform ·
+  full-text search · trace id · date range), **keyset pagination** that scales to millions of
+  rows, and **live tail**.
+- **Event detail pages** — full message, a metadata grid, **exception stack traces** (with
+  in-app frame highlighting), tags, user/request, breadcrumbs and the raw payload.
+- **Alerts** — per-project rules (minimum severity, source, message substring) delivered to
+  **webhooks** (SSRF-guarded) or **email** (via your Matomo mail settings), with cooldowns.
+  Evaluated **asynchronously**, off the ingest request path.
+- **Projects & tokens** — each project (a Matomo "site") has a hashed, **write-only** ingest
+  token you can rotate; a leaked token can submit events but can never read your logs.
+- **SQLite or MySQL/MariaDB** — choose at install. All data access goes through Doctrine DBAL,
+  so the same code runs on either engine (no hand-written SQL).
 
-Matomo aims to be a Free software alternative to Google Analytics and is already used on more than 1,400,000 websites. Privacy is built-in!
+---
 
-## Mission Statement
+## Quick start (development)
 
-> « To create, as a community, the leading international open source digital analytics platform, that gives every user full control of their data, to empower better decisions. »
+Requirements: PHP 8.1+ with `pdo_sqlite` (or `pdo_mysql`), and the bundled dependencies.
 
-Our purpose is to:
+```bash
+# from the app directory
+php -S localhost:8003 router.php
+```
 
-> « Empower People Ethically »
+Open <http://localhost:8003/> and complete the installer (pick SQLite for a zero-setup dev DB).
+The dev installer seeds an admin user — **`admin` / `admin123`** — change this before exposing
+the instance. The `router.php` dev server maps the clean `/api/{id}/store/` URLs to the
+ingestion endpoint; in production you do this with an nginx/Apache rewrite (see *Deployment*).
+
+---
+
+## Sending logs
+
+Every project has a **DSN**:
+
+```
+{scheme}://{TOKEN}@{HOST}/{PROJECT_ID}
+http://<token>@localhost:8003/1
+```
+
+Get or rotate the token on **Logs → Projects & tokens** (admin only). Then either drop in an
+SDK or POST directly:
+
+```bash
+curl -X POST http://localhost:8003/api/1/store/ \
+  -H "Authorization: Bearer <your-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"level":"error","message":"Payment failed","platform":"curl",
+       "environment":"production","extra":{"order":123}}'
+```
+
+The SDKs build the URL from the DSN automatically:
+
+| Language | Package | Repository |
+|---|---|---|
+| PHP | `selfwatch/sdk` | <https://github.com/Proto-Monad/selfwatch-php-sdk> |
+| JavaScript / Node | `@selfwatch/sdk` | <https://github.com/Proto-Monad/selfwatch-js-sdk> |
+| Rust | `selfwatch` | <https://github.com/Proto-Monad/selfwatch-rust-sdk> |
+
+> `http` is only accepted for loopback hosts; any non-loopback host **must** use `https`
+> (enforced both by the server and the SDKs).
+
+---
+
+## Alerts
+
+Create rules under **Logs → Alerts**: fire when an entry is at least *level* X, optionally with
+a *source* and a *message contains* substring, throttled by a cooldown. Channels:
+
+- **Webhook** — `POST`s the event JSON; outbound requests are SSRF-guarded (no link-local /
+  internal targets).
+- **Email** — sent through Matomo's configured mail transport (**Settings → General → Mail
+  Server Settings**), so SMTP is whatever you set there.
+
+Alerts are evaluated **asynchronously** so ingestion stays fast. Run the processor from cron
+for low latency:
+
+```cron
+* * * * * php /path/to/selfwatch/console logs:process-alerts >/dev/null 2>&1
+```
+
+(Without the cron, the hourly scheduled task still runs them.)
+
+---
+
+## Security model
+
+Logs are sensitive, so the ingest credential is deliberately **write-only**:
+
+- Ingest tokens are stored only as a **SHA-256 hash**; the plaintext is shown once at creation.
+- A token can **only submit events** — it cannot read logs, list projects, or authenticate to
+  any reporting API (it is never written to Matomo's user-token table). A leaked token's worst
+  case is event spam, which the **per-project rate limit** caps.
+- HTTPS is enforced for ingestion (loopback exempt), the request body is capped, and all
+  read/management screens require an authenticated Matomo session with the right permission.
+- Project data access is **IDOR-scoped** end to end (one project can't read another's entries
+  or alert rules), and admin actions are CSRF-nonce protected.
+
+For a public/browser DSN, treat the token as public and write-only (as you would a Sentry DSN);
+your server SDKs keep theirs in env/secrets.
+
+---
+
+## Deployment
+
+1. **Web server rewrite** for the Sentry-style URLs (nginx example):
+   ```nginx
+   location ~ ^/api/[0-9]+/(store|envelope)/?$ { rewrite ^ /api.php last; }
+   ```
+   On Apache the bundled root `.htaccess` handles this when `mod_rewrite` is enabled.
+2. **Database** — SQLite is fine for small/single-node setups; choose MySQL/MariaDB at install
+   for higher volume.
+3. **Alert cron** — schedule `console logs:process-alerts` (above).
+4. **Production config** — set a real `salt`, `trusted_hosts`, HTTPS, and change the admin
+   password.
+
+---
+
+## Development
+
+```bash
+php -S localhost:8003 router.php      # run the dev server
+php plugins/Logs/tests/run.php        # run the selfwatch test suite
+```
+
+The selfwatch logic lives in **`plugins/Logs`** (ingestion, validation, viewer, alerts, tokens),
+the Sentry endpoint in **`api.php`**, the DBAL layer in **`core/Db/Dbal`** and the engine schemas
+in **`core/Db/Schema`** (shared, DBAL-generated). `plugins/Logs/tests/run.php` is a
+dependency-free runner covering the validation and authorization-critical paths.
+
+---
 
 ## License
 
-Matomo is released under the GPL v3 (or later) license, see [LICENSE](LICENSE).
-
-## Requirements
-
-  * PHP 7.2.5 or greater
-  * MySQL version 5.5 or greater, or MariaDB 
-  * PHP extension pdo and pdo_mysql, or the MySQLi extension
-  * Matomo is OS / server independent
-
-See https://matomo.org/docs/requirements/.
-
-## Install Matomo
-
-  * [Download Matomo](https://matomo.org/download/)
-  * Upload Matomo to your webserver
-  * Point your browser to the directory
-  * Follow the steps
-  * Add the given JavaScript code to your pages
-  * (You may also generate fake data to experiment, by enabling the plugin VisitorGenerator)
-
-See https://matomo.org/docs/installation/.
-
-## Develop for Matomo
-
-When using Matomo for development you need to [install Matomo from the Git repository](https://matomo.org/faq/how-to-install/faq_18271/).
-
-This will also give you access to a DDEV environment you can use. More details can be found in the [DDEV README](.ddev/README.md).
-
-## Free trial 
-
-If you do not have a server or don't want to host yourself, you can use our Matomo Cloud service (21 day free trial): https://matomo.org/start-free-analytics-trial/
-
-## Online Demo
-
-Check out the online demo for Matomo at [demo.matomo.cloud](https://demo.matomo.cloud/).
-
-## Changelog
-
-For the list of all tickets closed in the current and past releases, see [matomo.org/changelog/](https://matomo.org/changelog/). For the list of technical changes in the Matomo platform, see [developer.matomo.org/changelog](https://developer.matomo.org/changelog).
-
-## Get involved!
-
-We believe in liberating Web Analytics, providing a free platform for simple and advanced analytics. Matomo was built by dozens of people like you,
-and we need your help to make Matomo better… Why not participate in a useful project today? [Learn how you can contribute to Matomo](https://matomo.org/get-involved).
-
-## Careers at Matomo
-
-We're hiring! Learn more on our [Careers page](https://matomo.org/jobs/).
-
-## Translations
-
-Our translations are managed on [Weblate](https://hosted.weblate.org/engage/matomo/).
-
-[![Translation Status](https://hosted.weblate.org/widgets/matomo/-/horizontal-auto.svg)](https://hosted.weblate.org/engage/matomo/)
-
-## Quality Assurance
-
-The Matomo project uses an ever-expanding comprehensive set of thousands of unit tests and hundreds of automated integration tests, system tests, JavaScript tests, and screenshot UI tests, running on a continuous integration server as part of its software quality assurance. [Learn more](https://developer.matomo.org/guides/tests).
-
-We use [BrowserStack.com](https://www.browserstack.com/) testing tool to help check the Matomo user interface is compatible with many browsers.
-
-## Security
-
-Security is a top priority at Matomo. As potential issues are discovered, we validate, patch and release fixes as quickly as we can. We have a security bug bounty program in place that rewards researchers for finding security issues and disclosing them to us. 
-
-[Learn more](https://matomo.org/security/) or check out our [HackerOne program](https://hackerone.com/matomo).
-
-## Support for Matomo
-
-For **Free support**, post a message in our community forums: [forum.matomo.org](https://forum.matomo.org/)
-
-For **Professional paid support**, purchase a Matomo On-Premise Support Plan: [matomo.org/support-plans](https://matomo.org/support-plans/)  
-
-## Contact
-
-Website: [matomo.org](https://matomo.org)
-
-About us: [matomo.org/team/](https://matomo.org/team/)
-
-Contact us: [matomo.org/contact/](https://matomo.org/contact/)
-
-## More information
-
-What makes Matomo unique from the competition:
-
-  * You own your web analytics data: since Matomo is installed on your server, the data is stored in your own database and you can get all the statistics using the powerful Matomo Analytics API.
-
-  * Matomo is a Free Software which can easily be configured to respect your visitors' privacy.
-
-  * Modern, easy to use User Interface: you can fully customize your dashboard, drag and drop widgets and more.
-
-  * Matomo features are built inside plugins: you can add new features and remove the ones you don’t need.
-    You can build your own web analytics plugins or hire a consultant to have your custom feature built-in Matomo.
-
-  * A vibrant international Open community of more than 200,000 active users (tracking even more websites!)
-
-  * Advanced Web Analytics capabilities such as E-commerce Tracking, Goal tracking, Campaign tracking,
-    Custom Variables, Email Reports, Custom Segment Editor, Geo Location, Real-time visits and maps, [and a lot more!](https://matomo.org/feature-overview/)
-
-Documentation and more info on https://matomo.org.
-
-We are together creating the best open analytics platform in the world!
+selfwatch is released under the **GPL v3 (or later)**, inheriting Matomo's license. It is an
+independent fork and is not affiliated with or endorsed by Matomo. See [LICENSE](LICENSE).

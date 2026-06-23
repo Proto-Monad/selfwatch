@@ -141,7 +141,6 @@ class CoreAdminHome extends \Piwik\Plugin
         $stylesheets[] = "plugins/CoreAdminHome/stylesheets/generalSettings.less";
         $stylesheets[] = "plugins/CoreAdminHome/vue/src/TrackingFailures/TrackingFailures.less";
         $stylesheets[] = "plugins/CoreAdminHome/stylesheets/whatIsNew.less";
-        $stylesheets[] = "plugins/CoreAdminHome/stylesheets/trackingCodeGenerator.less";
     }
 
     public function getJsFiles(&$jsFiles)

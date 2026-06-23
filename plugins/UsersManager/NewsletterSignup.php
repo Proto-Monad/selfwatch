@@ -13,7 +13,6 @@ use Exception;
 use Piwik\Container\StaticContainer;
 use Piwik\Http;
 use Piwik\Option;
-use Piwik\Plugins\Marketplace\Api\Client;
 use Piwik\SettingsPiwik;
 
 class NewsletterSignup
@@ -28,7 +27,8 @@ class NewsletterSignup
             return false;
         }
 
-        $url = Client::getApiServiceUrl();
+        // selfwatch: Marketplace removed; the Matomo API base URL is inlined here.
+        $url = 'https://api.matomo.org';
         $url .= '/1.0/subscribeNewsletter/';
 
         $params = array(

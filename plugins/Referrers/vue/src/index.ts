@@ -6,4 +6,3 @@
  */
 
 export { default as CampaignBuilder } from './CampaignBuilder/CampaignBuilder.vue';
-export { default as CampaignBuilderWidget } from './CampaignBuilderWidget/CampaignBuilderWidget.vue';

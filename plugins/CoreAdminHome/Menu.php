@@ -36,21 +36,8 @@ class Menu extends \Piwik\Plugin\Menu
             );
         }
 
-        if (!Piwik::isUserIsAnonymous()) {
-            $menu->addMeasurableItem(
-                'CoreAdminHome_TrackingCode',
-                $this->urlForAction('trackingCodeGenerator'),
-                $order = 12
-            );
-        }
-
-        if (Piwik::isUserHasSomeAdminAccess()) {
-            $menu->addDiagnosticItem(
-                'CoreAdminHome_TrackingFailures',
-                $this->urlForAction('trackingFailures'),
-                $order = 2
-            );
-        }
+        // selfwatch: web-analytics tracking is not used, so the JavaScript "Tracking Code"
+        // generator and the "Tracking Failures" diagnostic are not shown in the sidebar.
     }
 
     public function configureTopMenu(MenuTop $menu)

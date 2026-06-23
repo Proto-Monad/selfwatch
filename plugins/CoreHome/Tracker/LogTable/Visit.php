@@ -42,9 +42,4 @@ class Visit extends LogTable
     {
         return array('idvisit');
     }
-
-    public function hasIdVisitorColumn(): bool
-    {
-        return true;
-    }
 }

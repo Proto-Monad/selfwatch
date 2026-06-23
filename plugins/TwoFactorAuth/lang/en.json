@@ -1,6 +1,6 @@
 {
     "TwoFactorAuth": {
-        "PluginDescription": "Enhance your Matomo account security with Two-Factor Authentication (2FA) to protect against unauthorized access.",
+        "PluginDescription": "Enhance your selfwatch account security with Two-Factor Authentication (2FA) to protect against unauthorized access.",
         "TwoFactorAuthentication": "Two-factor authentication",
         "TwoFAShort": "2FA",
         "TwoFactorAuthenticationIntro": "%1$sTwo-factor authentication%2$s increases account security by also asking you for a code generated on a mobile device, or one of the remaining recovery codes (in addition to your password) to log in.",
@@ -26,8 +26,8 @@
         "WarningChangingConfiguredDevice": "You are about to change the configured two-factor authentication device, invalidating the one you had before.",
         "ShowRecoveryCodes": "Show recovery codes",
         "ConfirmSetup": "Confirm setup",
-        "NotPossibleToLogIn": "Cannot log in to Matomo Analytics",
-        "LostAuthenticationDevice": "Hi,%1$sI have two-factor authentication and lost my authentication device. Could you please reset the two-factor authentication for my username \"%5$s\"? Instructions here: %6$s.%2$sThe Matomo URL is %3$s.%4$sThanks",
+        "NotPossibleToLogIn": "Cannot log in to selfwatch Analytics",
+        "LostAuthenticationDevice": "Hi,%1$sI have two-factor authentication and lost my authentication device. Could you please reset the two-factor authentication for my username \"%5$s\"? Instructions here: %6$s.%2$sThe selfwatch URL is %3$s.%4$sThanks",
         "WrongAuthCodeTryAgain": "Wrong authentication code. Please try again.",
         "DisableTwoFA": "Turn off two-factor authentication",
         "EnableTwoFA": "Turn on two-factor authentication",

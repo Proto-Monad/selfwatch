@@ -338,7 +338,12 @@ class FrontController extends Singleton
         // try to connect to the database
         try {
             Db::createDatabaseObject();
-            Db::fetchAll("SELECT DATABASE()");
+            // Verify the connection works. MySQL/MariaDB use DATABASE() to also confirm a
+            // database is selected; SQLite is file-based and has no such function, so a
+            // trivial SELECT is used to probe connectivity instead.
+            $adapter = strtolower(\Piwik\Config::getInstance()->database['adapter'] ?? '');
+            $probeQuery = strpos($adapter, 'sqlite') !== false ? 'SELECT 1' : 'SELECT DATABASE()';
+            Db::fetchAll($probeQuery);
         } catch (Exception $exception) {
             if (self::shouldRethrowException()) {
                 throw $exception;

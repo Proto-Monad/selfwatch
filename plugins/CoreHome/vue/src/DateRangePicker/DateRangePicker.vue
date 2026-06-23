@@ -129,12 +129,15 @@ export default defineComponent({
   watch: {
     startDate() {
       this.startDateText = this.startDate;
-      this.syncStartRangeDateFromProp(this.startDate);
+      this.setStartRangeDateFromStr(this.startDate);
     },
     endDate() {
       this.endDateText = this.endDate;
-      this.syncEndRangeDateFromProp(this.endDate);
+      this.setEndRangeDateFromStr(this.endDate);
     },
+  },
+  mounted() {
+    this.rangeChanged(); // emit with initial range pair
   },
   methods: {
     setStartRangeDate(date: Date) {
@@ -173,7 +176,7 @@ export default defineComponent({
         end: this.endDate,
       });
     },
-    syncStartRangeDateFromProp(dateStr?: string) {
+    setStartRangeDateFromStr(dateStr?: string) {
       this.startDateInvalid = true;
 
       let startDateParsed: Date|null = null;
@@ -188,15 +191,11 @@ export default defineComponent({
       if (startDateParsed) {
         this.fromPickerSelectedDate = startDateParsed;
         this.startDateInvalid = false;
-      }
-    },
-    setStartRangeDateFromStr(dateStr?: string) {
-      this.syncStartRangeDateFromProp(dateStr);
-      if (!this.startDateInvalid) {
+
         this.rangeChanged();
       }
     },
-    syncEndRangeDateFromProp(dateStr?: string) {
+    setEndRangeDateFromStr(dateStr?: string) {
       this.endDateInvalid = true;
 
       let endDateParsed: Date|null = null;
@@ -211,11 +210,7 @@ export default defineComponent({
       if (endDateParsed) {
         this.toPickerSelectedDate = endDateParsed;
         this.endDateInvalid = false;
-      }
-    },
-    setEndRangeDateFromStr(dateStr?: string) {
-      this.syncEndRangeDateFromProp(dateStr);
-      if (!this.endDateInvalid) {
+
         this.rangeChanged();
       }
     },

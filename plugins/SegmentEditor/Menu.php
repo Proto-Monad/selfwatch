@@ -18,23 +18,8 @@ class Menu extends \Piwik\Plugin\Menu
 {
     public function configureAdminMenu(MenuAdmin $menu)
     {
-        $idSite = Request::fromRequest()->getIntegerParameter('idSite', -1);
-        if ($idSite === -1) {
-            $idSite = $this->getDefaultIdSiteForUser();
-        }
-        if ($idSite !== -1) {
-            $menu->addMeasurableItem(
-                'CoreHome_Segments',
-                $this->urlForModuleAction('CoreHome', 'index', [
-                    'idSite' => $idSite,
-                    'category' => 'General_Visitors',
-                    'subcategory' => 'CoreHome_Segments',
-                ]),
-                19,
-                Piwik::translate('SegmentEditor_ManageSegments'),
-                'icon-outlink'
-            );
-        }
+        // selfwatch: segments are an analytics concept; the Logs UI has its own filtering,
+        // so the "Manage Segments" page is not shown in the sidebar.
     }
 
     private function getDefaultIdSiteForUser(): int

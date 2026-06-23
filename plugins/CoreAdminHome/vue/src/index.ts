@@ -8,13 +8,6 @@
 export { default as ArchivingSettings } from './ArchivingSettings/ArchivingSettings.vue';
 export { default as BrandingSettings } from './BrandingSettings/BrandingSettings.vue';
 export { default as SmtpSettings } from './SmtpSettings/SmtpSettings.vue';
-export {
-  default as JsTrackingCodeGenerator,
-} from './JsTrackingCodeGenerator/JsTrackingCodeGenerator.vue';
-export {
-  default as JsTrackingCodeGeneratorSitesWithoutData,
-} from './JsTrackingCodeGenerator/JsTrackingCodeGeneratorSitesWithoutData.vue';
-export {
-  default as ImageTrackingCodeGenerator,
-} from './ImageTrackingCodeGenerator/ImageTrackingCodeGenerator.vue';
+// selfwatch: the JavaScript/image tracking-code generator components were removed
+// (no web-analytics tracking). The compiled dist retains inert dead code until rebuilt.
 export { default as TrackingFailures } from './TrackingFailures/TrackingFailures.vue';

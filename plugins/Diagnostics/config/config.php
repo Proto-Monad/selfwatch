@@ -30,8 +30,7 @@ return array(
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\RecommendedExtensionsCheck'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\RecommendedFunctionsCheck'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\NfsDiskCheck'),
-        Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\CronArchivingCheck'),
-        Piwik\DI::get(CronArchivingLastRunCheck::class),
+        // selfwatch: no analytics archiving, so the cron-archiving diagnostics are not registered.
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\DatabaseAbilitiesCheck'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\DbOverSSLCheck'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\DbMaxPacket'),
@@ -43,9 +42,9 @@ return array(
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\DatabaseInformational'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\ConfigInformational'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\ServerInformational'),
-        Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\ReportInformational'),
         Piwik\DI::get('Piwik\Plugins\Diagnostics\Diagnostic\UserInformational'),
-        Piwik\DI::get(\Piwik\Plugins\Diagnostics\Diagnostic\ArchiveInvalidationsInformational::class),
+        // selfwatch: ReportInformational + ArchiveInvalidationsInformational are analytics/
+        // archiving-specific (the latter queries the absent archive_invalidations table).
     ),
     // Allows other plugins to disable diagnostics that were previously registered
     'diagnostics.disabled' => array(),

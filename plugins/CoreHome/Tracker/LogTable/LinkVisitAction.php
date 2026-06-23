@@ -42,9 +42,4 @@ class LinkVisitAction extends LogTable
     {
         return array('idlink_va');
     }
-
-    public function hasIdVisitorColumn(): bool
-    {
-        return true;
-    }
 }

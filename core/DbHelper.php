@@ -39,8 +39,8 @@ class DbHelper
      */
     public static function tableExists($tableName)
     {
-        $tableName = str_replace(['%', '_', "'"], ['\%', '\_', '_'], $tableName);
-        return Db::get()->query(sprintf("SHOW TABLES LIKE '%s'", $tableName))->rowCount() > 0;
+        // Portable existence check via DBAL's schema manager (replaces MySQL's SHOW TABLES).
+        return \Piwik\Db\Dbal\Connection::get()->createSchemaManager()->tablesExist([$tableName]);
     }
 
     /**
@@ -212,6 +212,11 @@ class DbHelper
      */
     public static function getDefaultCharset(): string
     {
+        // selfwatch: SQLite stores text as UTF-8 and has no SHOW CHARACTER SET / charset variables.
+        if (Schema::getInstance()->getDatabaseType() === 'SQLite') {
+            return 'utf8mb4';
+        }
+
         $result = Db::get()->fetchRow("SHOW CHARACTER SET LIKE 'utf8mb4'");
 
         if (empty($result)) {

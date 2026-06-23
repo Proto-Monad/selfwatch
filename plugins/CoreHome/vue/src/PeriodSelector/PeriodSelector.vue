@@ -46,11 +46,13 @@
         <PeriodSelectorOptionsColumn
           :ui-selected-period="selectedPeriod"
           :periods-filtered="periodsFiltered"
+          :ui-selection="uiSelection"
           :applied-period="committedPeriod"
           :active-preset-id="activePresetId"
           :min-allowed-date="minAllowedDate"
           :max-allowed-date="maxAllowedDate"
           @update:ui-selected-period="selectedPeriod = $event"
+          @update:active-preset-id="activePresetId = $event"
           @period-select="onPeriodOptionSelected($event)"
           @period-dblclick="onPeriodOptionDblClick($event)"
           @preset-select="onPresetDateRangeSelected($event)"
@@ -75,6 +77,7 @@
           @single-date-select="onDatePickerSelected($event)"
           @apply-click="onApplyClicked()"
           @disabled-apply-interaction="onDisabledApplyInteraction()"
+          @range-preset-date-cell-click-capture="onRangePresetDateCellClickCapture($event)"
           @update:isComparing="onCompareToggleUpdated($event)"
           @update:comparePeriodType="onComparePeriodTypeUpdated($event)"
           @update:compareStartDate="onCompareStartDateUpdated($event)"
@@ -116,7 +119,6 @@ import {
   parseDate,
   Range,
   format,
-  getToday,
   datesAreInTheSamePeriod,
 } from '../Periods';
 import Tooltips from '../Tooltips/Tooltips';
@@ -137,10 +139,7 @@ import type {
   PresetDateRangeId,
   PresetDateRangeSelection,
 } from './PresetDateRangeResolver';
-import {
-  getPresetIdFromPeriodAndDate,
-  getTokenPresetIdFromPeriodAndDate,
-} from './PresetDateRangeResolver';
+import { getTokenPresetIdFromPeriodAndDate } from './PresetDateRangeResolver';
 import {
   getContextKeyFromParsed,
   getSelectionKey,
@@ -161,78 +160,6 @@ import {
   isValidDate,
   isSingleCalendarPeriod,
 } from './PeriodSelector.types';
-
-// Ownership model:
-// - uiSelection tracks what currently owns Apply/focus behavior: either a period option
-//   or a staged preset shortcut.
-// - pendingPresetSelection stores the unapplied preset payload while a preset owns the UI.
-// - activePresetId is derived display state only. It may match a staged preset, or it may
-//   highlight a preset that happens to match the committed concrete selection.
-// Keep these roles separate so calendar interactions can switch ownership back to period
-// mode without losing the "this selection matches a preset" highlight.
-function resolveActivePresetIdFromSelection(state: Pick<PeriodSelectorState,
-  'pendingPresetSelection'
-  | 'selectedPeriod'
-  | 'committedAnchorDate'
-  | 'appliedRangeStartDate'
-  | 'appliedRangeEndDate'
->): PresetDateRangeId|null {
-  if (state.pendingPresetSelection) {
-    return state.pendingPresetSelection.id;
-  }
-
-  let currentDate: string|null = null;
-  if (state.selectedPeriod === RANGE_PERIOD) {
-    if (state.appliedRangeStartDate && state.appliedRangeEndDate) {
-      currentDate = `${state.appliedRangeStartDate},${state.appliedRangeEndDate}`;
-    }
-  } else if (state.committedAnchorDate) {
-    currentDate = format(state.committedAnchorDate);
-  }
-
-  if (!currentDate) {
-    return null;
-  }
-
-  return getPresetIdFromPeriodAndDate(
-    state.selectedPeriod,
-    currentDate,
-    getToday(),
-  );
-}
-
-function syncSelectionDisplayState(state: Pick<PeriodSelectorState,
-  'selectedPeriod'
-  | 'committedPeriod'
-  | 'committedAnchorDate'
-  | 'pendingPresetSelection'
-  | 'singleCalendarPeriod'
-  | 'singleCalendarSelectedDate'
-> & Partial<Pick<PeriodSelectorState, 'calendarViewport'>>): void {
-  state.calendarViewport = state.selectedPeriod === RANGE_PERIOD ? 'range' : 'single';
-
-  if (isSingleCalendarPeriod(state.selectedPeriod)) {
-    state.singleCalendarPeriod = state.selectedPeriod;
-  } else if (!isSingleCalendarPeriod(state.singleCalendarPeriod)) {
-    state.singleCalendarPeriod = 'day';
-  }
-
-  if (state.selectedPeriod === RANGE_PERIOD) {
-    state.singleCalendarSelectedDate = null;
-    return;
-  }
-
-  if (state.pendingPresetSelection
-    && isSingleCalendarPeriod(state.pendingPresetSelection.period)
-  ) {
-    state.singleCalendarSelectedDate = state.pendingPresetSelection.selectedDate;
-    return;
-  }
-
-  state.singleCalendarSelectedDate = state.committedPeriod === state.selectedPeriod
-    ? state.committedAnchorDate
-    : null;
-}
 
 export default defineComponent({
   name: 'PeriodSelector',
@@ -265,6 +192,7 @@ export default defineComponent({
       lastKnownHashContextKey: null,
       minAllowedDate: siteMinAllowedDate,
       maxAllowedDate: siteMaxAllowedDate,
+      activePresetId: null,
       pendingPresetSelection: null,
       committedPeriod: selectedPeriod,
       committedAnchorDate: null,
@@ -300,9 +228,6 @@ export default defineComponent({
     this.handleZIndexPositionRelativeCompareDropdownIssue();
   },
   computed: {
-    activePresetId(): PresetDateRangeId|null {
-      return resolveActivePresetIdFromSelection(this);
-    },
     matomoParsed() {
       return MatomoUrl.parsed.value;
     },
@@ -539,6 +464,7 @@ export default defineComponent({
       this.lastInteractionSource = source;
     },
     clearPresetSelection() {
+      this.activePresetId = null;
       this.pendingPresetSelection = null;
     },
     setPendingPeriodAndDate(period: string, date: Date) {
@@ -546,7 +472,10 @@ export default defineComponent({
       this.selectedPeriod = period;
       this.committedAnchorDate = date;
       this.setRangeStartEndFromPeriod(period, format(date));
-      syncSelectionDisplayState(this);
+      if (isSingleCalendarPeriod(period)) {
+        this.singleCalendarPeriod = period;
+        this.singleCalendarSelectedDate = date;
+      }
     },
     setPiwikPeriodAndDate(period: string, date: Date) {
       this.setPendingPeriodAndDate(period, date);
@@ -570,10 +499,19 @@ export default defineComponent({
       // Selecting a period option exits preset ownership and discards any unapplied preset staging.
       // After this point, Apply commits period-owned state only.
       this.clearPresetSelection();
-      syncSelectionDisplayState(this);
       if (payload.period === RANGE_PERIOD) {
+        this.calendarViewport = 'range';
         this.isRangeValid = true;
+        return;
       }
+
+      this.calendarViewport = 'single';
+      if (isSingleCalendarPeriod(payload.period)) {
+        this.singleCalendarPeriod = payload.period;
+      }
+      this.singleCalendarSelectedDate = payload.period === this.committedPeriod
+        ? this.committedAnchorDate
+        : null;
     },
     onPeriodOptionDblClick(payload: { period: string }) {
       this.onPeriodOptionSelected(payload);
@@ -592,7 +530,10 @@ export default defineComponent({
       this.setPiwikPeriodAndDate(payload.period, this.committedAnchorDate);
     },
     canInteractWithSingleCalendar(): boolean {
+      // Preset-owned selections are intentionally read-only for calendar interactions.
+      // Users must switch ownership via period options before single-calendar clicks can commit.
       return this.calendarViewport === 'single'
+        && this.uiSelection.type === 'period'
         && this.selectedPeriod !== RANGE_PERIOD;
     },
     onDatePickerSelected(date: Date) {
@@ -603,7 +544,6 @@ export default defineComponent({
       this.setUiSelection({ type: 'period', id: this.selectedPeriod }, 'calendar');
       this.setPendingPeriodAndDate(this.selectedPeriod, date);
       this.clearPresetSelection();
-      syncSelectionDisplayState(this);
       this.commitSelectionToUrl(format(date), this.selectedPeriod);
     },
     onPresetDateRangeSelected(selection: PresetDateRangeSelection) {
@@ -611,11 +551,21 @@ export default defineComponent({
         return;
       }
 
-      this.selectedPeriod = selection.period;
-      this.pendingPresetSelection = selection;
-      this.isRangeValid = selection.period === RANGE_PERIOD ? true : this.isRangeValid;
       this.setUiSelection({ type: 'preset', id: selection.id }, 'preset');
-      syncSelectionDisplayState(this);
+      this.activePresetId = selection.id;
+      this.selectedPeriod = selection.period;
+      this.isRangeValid = true;
+      this.pendingPresetSelection = selection;
+      if (selection.period === RANGE_PERIOD) {
+        this.calendarViewport = 'range';
+        return;
+      }
+
+      this.calendarViewport = 'single';
+      this.singleCalendarSelectedDate = selection.startDate;
+      if (isSingleCalendarPeriod(selection.period)) {
+        this.singleCalendarPeriod = selection.period;
+      }
     },
     onPresetDateRangeDblClick(selection: PresetDateRangeSelection) {
       this.onPresetDateRangeSelected(selection);
@@ -651,8 +601,8 @@ export default defineComponent({
         && this.pendingPresetSelection.id === this.uiSelection.id;
     },
     shouldCloseSelectorWithoutApplying(): boolean {
-      return this.selectedPeriod !== RANGE_PERIOD
-        && !this.hasPendingNonRangePeriodChange;
+      return this.uiSelection.type === 'preset'
+        && this.selectedPeriod !== RANGE_PERIOD;
     },
     hasCommittedRangeBounds(): boolean {
       return !!this.appliedRangeStartDate && !!this.appliedRangeEndDate;
@@ -664,17 +614,14 @@ export default defineComponent({
 
       const pendingPreset = this.pendingPresetSelection!;
       this.committedPeriod = pendingPreset.period;
-      this.committedAnchorDate = pendingPreset.selectedDate;
+      this.committedAnchorDate = pendingPreset.startDate;
       this.appliedRangeStartDate = format(pendingPreset.startDate);
       this.appliedRangeEndDate = format(pendingPreset.endDate);
-      this.setUiSelection({ type: 'period', id: pendingPreset.period }, 'preset');
       // Keep relative preset tokens in the URL (for example, "last7") so bookmarks stay rolling.
       // Staged start/end dates can be clamped for current UI bounds,
       // but URL semantics stay relative.
-      this.pendingPresetSelection = null;
-      syncSelectionDisplayState(this);
       this.commitSelectionToUrl(
-        pendingPreset.urlDate,
+        pendingPreset.date,
         pendingPreset.period,
       );
       return true;
@@ -723,9 +670,10 @@ export default defineComponent({
       this.commitSelectionToUrl(action.date, action.period);
     },
 
-    // Non-range period mode keeps the concrete selected date as the commit target.
-    // Reopening the selector should let Apply close unchanged state, or commit compare-only
-    // edits against that existing date, without forcing another calendar click.
+    // Invariant: non-range period mode intentionally cannot commit compare-only via Apply.
+    // When a non-range period option owns the selection, 'Apply' button stays disabled.
+    // Compare controls can still be edited in this state, but users must click the calendar
+    // to commit date/compare changes.
     onApplyClicked() {
       if (this.applyPendingPresetSelection()) {
         return;
@@ -785,18 +733,10 @@ export default defineComponent({
       syncedUiSelection: UiSelection|null,
     ) {
       if (syncedUiSelection) {
-        if (syncedUiSelection.type === 'preset') {
-          this.uiSelection = syncedUiSelection;
-          return;
-        }
-
-        const presetId = getTokenPresetIdFromPeriodAndDate(period, date);
-        if (presetId && this.periodsFiltered.includes(period)) {
-          this.uiSelection = { type: 'preset', id: presetId };
-          return;
-        }
-
         this.uiSelection = syncedUiSelection;
+        this.activePresetId = syncedUiSelection.type === 'preset'
+          ? syncedUiSelection.id
+          : null;
         return;
       }
 
@@ -805,6 +745,7 @@ export default defineComponent({
         && this.periodsFiltered.includes(period)
       ) {
         this.uiSelection = { type: 'preset', id: presetId };
+        this.activePresetId = presetId;
         this.pendingPresetSelection = null;
         return;
       }
@@ -902,7 +843,7 @@ export default defineComponent({
       this.applyDateValuesFromHash(period, date);
       this.isRangeValid = period === RANGE_PERIOD ? true : null;
       this.pendingPresetSelection = null;
-      syncSelectionDisplayState(this);
+      this.calendarViewport = period === RANGE_PERIOD ? 'range' : 'single';
       this.compareAppliedSignature = this.compareCurrentSignature;
     },
     setRangeStartEndFromPeriod(period: string, dateStr: string) {
@@ -916,6 +857,7 @@ export default defineComponent({
     },
     canInteractWithRangeCalendar(): boolean {
       return this.calendarViewport === 'range'
+        && this.uiSelection.type === 'period'
         && this.selectedPeriod === RANGE_PERIOD;
     },
     onRangeChange(start: string, end: string) {
@@ -932,7 +874,21 @@ export default defineComponent({
       this.appliedRangeStartDate = start;
       this.appliedRangeEndDate = end;
       this.setUiSelection({ type: 'period', id: RANGE_PERIOD }, 'range');
-      this.clearPresetSelection();
+    },
+    onRangePresetDateCellClickCapture(event: MouseEvent) {
+      if (!this.isRangePresetSelection) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      if (target.closest('.ui-datepicker-calendar a')) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     },
     isApplyEnabled() {
       return isApplyButtonEnabled({
@@ -941,7 +897,6 @@ export default defineComponent({
         hasPendingNonRangePeriodChange: this.hasPendingNonRangePeriodChange,
         hasPendingPresetSelection: !!this.pendingPresetSelection,
         isRangeValid: this.isRangeValid,
-        isCompareDirty: this.isCompareDirty,
         isComparing: this.isComparing,
         comparePeriodType: this.comparePeriodType,
         isCompareRangeValid: this.isCompareRangeValid(),

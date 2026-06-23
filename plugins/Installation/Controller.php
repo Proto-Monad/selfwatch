@@ -32,11 +32,9 @@ use Piwik\Plugins\LanguagesManager\LanguagesManager;
 use Piwik\Plugins\SitesManager\API as APISitesManager;
 use Piwik\Plugins\SitesManager\SitesManager;
 use Piwik\Plugins\UsersManager\API as APIUsersManager;
-use Piwik\Plugins\UsersManager\NewsletterSignup;
 use Piwik\Plugins\UsersManager\UserUpdater;
 use Piwik\ProxyHeaders;
 use Piwik\SettingsPiwik;
-use Piwik\Tracker\TrackerCodeGenerator;
 use Piwik\Translation\Translator;
 use Piwik\Updater;
 use Piwik\Url;
@@ -55,7 +53,6 @@ class Controller extends ControllerAdmin
         'tablesCreation'    => 'Installation_Tables',
         'setupSuperUser'    => 'Installation_SuperUser',
         'firstWebsiteSetup' => 'Installation_SetupWebsite',
-        'trackingCode'      => 'General_JsTrackingTag',
         'finished'          => 'Installation_Congratulations',
     );
 
@@ -295,14 +292,6 @@ class Controller extends ControllerAdmin
                     $email
                 );
 
-                $newsletterPiwikORG = $form->getSubmitValue('subscribe_newsletter_piwikorg');
-                $newsletterProfessionalServices = $form->getSubmitValue('subscribe_newsletter_professionalservices');
-                NewsletterSignup::signupForNewsletter(
-                    $loginName,
-                    $email,
-                    $newsletterPiwikORG,
-                    $newsletterProfessionalServices
-                );
                 Onboarding::sendSysAdminMail($email);
                 $this->redirectToNextStep(__FUNCTION__);
             } catch (Exception $e) {
@@ -330,8 +319,8 @@ class Controller extends ControllerAdmin
         });
 
         if ($siteIdsCount > 0) {
-            // if there is a already a website, skip this step and trackingCode step
-            $this->redirectToNextStep('trackingCode');
+            // if there is already a website, skip this step
+            $this->redirectToNextStep('firstWebsiteSetup');
         }
 
         $view = new View(
@@ -345,11 +334,10 @@ class Controller extends ControllerAdmin
         if ($form->validate()) {
             $name = Common::sanitizeInputValue($form->getSubmitValue('siteName'));
             $url = Common::unsanitizeInputValue($form->getSubmitValue('url'));
-            $ecommerce = (int)$form->getSubmitValue('ecommerce');
 
             try {
-                $result = Access::doAsSuperUser(function () use ($name, $url, $ecommerce) {
-                    return APISitesManager::getInstance()->addSite($name, $url, $ecommerce);
+                $result = Access::doAsSuperUser(function () use ($name, $url) {
+                    return APISitesManager::getInstance()->addSite($name, $url);
                 });
 
                 $params = array(
@@ -373,52 +361,7 @@ class Controller extends ControllerAdmin
     }
 
     /**
-     * Installation Step 7: Display JavaScript tracking code
-     */
-    public function trackingCode()
-    {
-        $this->checkPiwikIsNotInstalled();
-        $this->checkInstallationIsNotExpired();
-
-        $view = new View(
-            '@Installation/trackingCode',
-            $this->getInstallationSteps(),
-            __FUNCTION__
-        );
-
-        $siteName = Common::unsanitizeInputValue($this->getParam('site_name'));
-        $idSite = $this->getParam('site_idSite');
-
-        $javascriptGenerator = new TrackerCodeGenerator();
-        $jsTag = $javascriptGenerator->generate($idSite, Url::getCurrentUrlWithoutFileName());
-
-        // Needs to be generated as super user, as API requests would otherwise fail
-        $emailBody = Access::doAsSuperUser(
-            function () use ($idSite) {
-                return SitesManager::renderTrackingCodeEmail($idSite);
-            }
-        );
-
-        // Load the Tracking code and help text from the SitesManager
-        $viewTrackingHelp = new \Piwik\View('@SitesManager/_displayJavascriptCode');
-        $viewTrackingHelp->displaySiteName = $siteName;
-        $viewTrackingHelp->jsTag = $jsTag;
-        $viewTrackingHelp->emailBody = $emailBody;
-        $viewTrackingHelp->idSite = $idSite;
-        $viewTrackingHelp->piwikUrl = Url::getCurrentUrlWithoutFileName();
-        $viewTrackingHelp->isInstall = true;
-
-        $view->trackingHelp = $viewTrackingHelp->render();
-        $view->displaySiteName = $siteName;
-
-        $view->displayfirstWebsiteSetupSuccess = true;
-        $view->showNextStep = true;
-
-        return $view->render();
-    }
-
-    /**
-     * Installation Step 8: Finished!
+     * Installation Step 7: Finished!
      */
     public function finished()
     {

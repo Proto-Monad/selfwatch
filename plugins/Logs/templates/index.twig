@@ -1,0 +1,184 @@
+{% extends 'admin.twig' %}
+
+{% set title %}{{ siteName }} - Logs{% endset %}
+{% block pageTitle %}{{ siteName }} - Logs - selfwatch{% endblock %}
+{% block pageDescription %}selfwatch logs for {{ siteName|escape("html_attr") }}{% endblock %}
+
+{% block content %}
+{% include '@Logs/_styles.twig' %}
+
+{% set baseqs = 'module=Logs&action=index&idSite=' ~ idSite ~ '&period=' ~ period ~ '&date=' ~ date
+    ~ '&level=' ~ filters.level|url_encode ~ '&source=' ~ filters.source|url_encode
+    ~ '&environment=' ~ filters.environment|url_encode ~ '&platform=' ~ filters.platform|url_encode
+    ~ '&q=' ~ filters.q|url_encode ~ '&trace_id=' ~ filters.trace_id|url_encode
+    ~ '&from=' ~ filters.from|url_encode ~ '&to=' ~ filters.to|url_encode %}
+
+<div class="sw" id="sw-logs"
+     data-idsite="{{ idSite }}" data-lastid="{{ lastId }}"
+     data-detailbase="index.php?module=Logs&action=entry&idSite={{ idSite }}&period={{ period }}&date={{ date }}"
+     data-tailurl="index.php?module=Logs&action=tail&idSite={{ idSite }}&{{ filters|map((v,k) => k ~ '=' ~ v|url_encode)|join('&') }}">
+
+  <div class="sw__head">
+    <h2>{{ siteName }} &middot; Logs</h2>
+    <span class="sw__count">{{ total }} {{ total == 1 ? 'entry' : 'entries' }} match the filter</span>
+  </div>
+
+  {% if canManage %}
+  <details class="sw-howto">
+    <summary>How to send logs to this project</summary>
+    <p style="margin:8px 0;">POST JSON to <code class="sw-token">{{ piwikUrl|default('') }}api/{{ idSite }}/store/</code>
+      with the project's ingest token in the <code class="sw-token">Authorization: Bearer …</code> header —
+      the same endpoint the SDKs use. Get or rotate the token on the
+      <a href="index.php?module=Logs&action=projects&idSite={{ idSite }}&period={{ period }}&date={{ date }}">Projects &amp; tokens</a> page.</p>
+    <pre class="sw-code">curl -X POST {{ piwikUrl|default('') }}api/{{ idSite }}/store/ \
+  -H "Authorization: Bearer &lt;your-token&gt;" \
+  -H "Content-Type: application/json" \
+  -d '{"level":"error","message":"Payment failed","platform":"curl","environment":"production","extra":{"order":123}}'</pre>
+  </details>
+  {% endif %}
+
+  <form method="get" id="sw-filters">
+    <input type="hidden" name="module" value="Logs"><input type="hidden" name="action" value="index">
+    <input type="hidden" name="idSite" value="{{ idSite }}"><input type="hidden" name="period" value="{{ period }}"><input type="hidden" name="date" value="{{ date }}">
+    <input type="hidden" name="level" id="sw-level" value="{{ filters.level }}">
+
+    <div class="sw-bar">
+      <div class="sw-levels">
+        <a class="sw-pill {{ filters.level == '' ? 'active' }}" data-level="">All</a>
+        {% for lv in levels %}
+          {% if levelCounts[lv] is defined %}
+          <a class="sw-pill sw-lv-{{ lv }} {{ filters.level == lv ? 'active' }}" data-level="{{ lv }}">
+            {{ lv }} <span class="cnt">{{ levelCounts[lv] }}</span>
+          </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <select name="source" onchange="document.getElementById('sw-filters').submit()">
+        <option value="">All sources</option>
+        {% for s in sources %}<option value="{{ s }}" {{ filters.source == s ? 'selected' }}>{{ s }}</option>{% endfor %}
+      </select>
+
+      {% if environments is not empty %}
+      <select name="environment" onchange="document.getElementById('sw-filters').submit()">
+        <option value="">All environments</option>
+        {% for env in environments %}<option value="{{ env }}" {{ filters.environment == env ? 'selected' }}>{{ env }}</option>{% endfor %}
+      </select>
+      {% endif %}
+
+      {% if platforms is not empty %}
+      <select name="platform" onchange="document.getElementById('sw-filters').submit()">
+        <option value="">All platforms</option>
+        {% for pf in platforms %}<option value="{{ pf }}" {{ filters.platform == pf ? 'selected' }}>{{ pf }}</option>{% endfor %}
+      </select>
+      {% endif %}
+
+      <div class="q-wrap"><input class="q" type="text" name="q" value="{{ filters.q }}" placeholder="Search message…"></div>
+      <input type="text" name="trace_id" value="{{ filters.trace_id }}" placeholder="trace id" style="width:118px;">
+    </div>
+
+    <div class="sw-bar" style="border-bottom:0;padding-bottom:4px;">
+      <span class="sw-daterange">
+        <span>From</span><input type="datetime-local" name="from" value="{{ filters.from|replace({' ':'T'})|slice(0,16) }}">
+        <span>to</span><input type="datetime-local" name="to" value="{{ filters.to|replace({' ':'T'})|slice(0,16) }}">
+      </span>
+      <button type="submit" class="sw-apply">Apply</button>
+      {% if filters.from or filters.to or filters.q or filters.source or filters.environment or filters.platform or filters.trace_id or filters.level %}
+        <a class="sw-apply ghost" href="index.php?module=Logs&action=index&idSite={{ idSite }}&period={{ period }}&date={{ date }}" style="text-decoration:none;line-height:33px;">Clear</a>
+      {% endif %}
+      <div class="sw-spacer"></div>
+      <span class="sw-tail" id="sw-tail"><span class="sw-tail-dot"></span> Live tail</span>
+    </div>
+  </form>
+
+  <div class="sw-table-wrap">
+    <table class="sw-table">
+      <thead><tr>
+        <th class="sw-c-time">Time</th><th class="sw-c-level">Level</th><th class="sw-c-env">Env</th>
+        <th class="sw-c-source">Source</th><th class="sw-c-msg">Message</th><th class="sw-c-trace">Trace</th>
+      </tr></thead>
+      <tbody id="sw-rows">
+        {% for log in logs %}
+          <tr class="lv-{{ log.level }}" data-id="{{ log.idlogentry }}">
+            <td class="sw-c-time">{{ log.logged_at }}</td>
+            <td class="sw-c-level"><span class="sw-badge sw-lv-{{ log.level }}">{{ log.level }}</span></td>
+            <td class="sw-c-env">{% if log.environment %}<span class="sw-env">{{ log.environment }}</span>{% endif %}</td>
+            <td class="sw-c-source" title="{{ log.source }}{% if log.platform %} · {{ log.platform }}{% endif %}">{{ log.source ?: log.platform }}</td>
+            <td class="sw-c-msg"><span class="m">{{ log.message }}{% if log.app_release %} <span class="sw-rel" style="color:#98a2b3">{{ log.app_release }}</span>{% endif %}</span></td>
+            <td class="sw-c-trace" title="{{ log.trace_id }}">{{ log.trace_id ? log.trace_id|slice(0,12) : '' }}</td>
+          </tr>
+        {% else %}
+          <tr style="cursor:default"><td colspan="6"><div class="sw-empty">No log entries match. Send logs to this project, or widen the filter / date range.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if hasCursor or hasOlder %}
+  <div class="sw-pager">
+    {% if hasCursor %}
+      <a href="index.php?{{ baseqs }}&after={{ newestId }}">&larr; Newer</a>
+      <a href="index.php?{{ baseqs }}">Latest</a>
+    {% endif %}
+    <span class="sw-spacer"></span>
+    <span>{{ total }} total</span>
+    {% if hasOlder %}<a href="index.php?{{ baseqs }}&before={{ oldestId }}">Older &rarr;</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<script>
+(function () {
+  var root = document.getElementById('sw-logs');
+  if (!root) return;
+  var detailBase = root.getAttribute('data-detailbase');
+  var rows = document.getElementById('sw-rows');
+
+  function go(id){ if (id) window.location.href = detailBase + '&id=' + id; }
+  rows.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr[data-id]');
+    if (tr) go(tr.getAttribute('data-id'));
+  });
+
+  // Level pills set the hidden field and submit the filter form.
+  Array.prototype.forEach.call(document.querySelectorAll('.sw-pill'), function (pill) {
+    pill.addEventListener('click', function () {
+      document.getElementById('sw-level').value = pill.getAttribute('data-level');
+      document.getElementById('sw-filters').submit();
+    });
+  });
+
+  // Live tail: poll for entries newer than the newest we have, prepend them.
+  var badge = { debug:'sw-lv-debug', info:'sw-lv-info', notice:'sw-lv-notice', warning:'sw-lv-warning',
+    error:'sw-lv-error', critical:'sw-lv-critical', alert:'sw-lv-alert', emergency:'sw-lv-emergency' };
+  function esc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
+  function rowHtml(l){
+    return '<tr class="lv-'+esc(l.level)+'" data-id="'+esc(l.id)+'">'
+      + '<td class="sw-c-time">'+esc(l.logged_at)+'</td>'
+      + '<td class="sw-c-level"><span class="sw-badge '+(badge[l.level]||'sw-lv-info')+'">'+esc(l.level)+'</span></td>'
+      + '<td class="sw-c-env">'+(l.environment?'<span class="sw-env">'+esc(l.environment)+'</span>':'')+'</td>'
+      + '<td class="sw-c-source" title="'+esc(l.source)+'">'+esc(l.source)+'</td>'
+      + '<td class="sw-c-msg"><span class="m">'+esc(l.message)+'</span></td>'
+      + '<td class="sw-c-trace" title="'+esc(l.trace_id)+'">'+esc((l.trace_id||'').slice(0,12))+'</td></tr>';
+  }
+  var lastId = parseInt(root.getAttribute('data-lastid'), 10) || 0;
+  var timer = null;
+  function poll(){
+    fetch(root.getAttribute('data-tailurl') + '&after_id=' + lastId, { credentials:'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(d){
+        if (d.logs && d.logs.length) {
+          var empty = rows.querySelector('.sw-empty'); if (empty) rows.innerHTML = '';
+          d.logs.forEach(function(l){ rows.insertAdjacentHTML('afterbegin', rowHtml(l)); });
+          lastId = d.lastId;
+        }
+      }).catch(function(){});
+  }
+  var toggle = document.getElementById('sw-tail');
+  toggle.addEventListener('click', function(){
+    if (timer) { clearInterval(timer); timer=null; toggle.classList.remove('on'); }
+    else { toggle.classList.add('on'); poll(); timer=setInterval(poll, 3000); }
+  });
+})();
+</script>
+{% endblock %}

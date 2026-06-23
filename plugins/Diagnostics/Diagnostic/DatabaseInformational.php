@@ -12,6 +12,7 @@ namespace Piwik\Plugins\Diagnostics\Diagnostic;
 use Piwik\Common;
 use Piwik\Config;
 use Piwik\Db;
+use Piwik\Db\Schema;
 use Piwik\SettingsPiwik;
 use Piwik\Translation\Translator;
 
@@ -58,11 +59,10 @@ class DatabaseInformational implements Diagnostic
 
     private function getNumMatomoTables()
     {
-        $prefix = Common::prefixTable('');
-
         $results = null;
         try {
-            $results = Db::get()->fetchAll('show tables like "' . $prefix . '%"');
+            // selfwatch: engine-agnostic table count (SQLite has no SHOW TABLES).
+            $results = Schema::getInstance()->getTablesInstalled();
         } catch (\Exception $e) {
             return $e->getMessage();
         }

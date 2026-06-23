@@ -1,15 +1,18 @@
 <span id="logo" class="logo brand-logo {% if centeredLogo is defined and centeredLogo %}center{% endif %}">
     {% if logoLink is not defined or logoLink is not empty %}
     <a href="{{ logoLink|default('index.php') }}" tabindex="3"
-       title="{% if isCustomLogo %}{{ 'General_PoweredBy'|translate }} {% endif %}Matomo{% if not isCustomLogo %} # {{ 'General_OpenSourceWebAnalytics'|translate }}{% endif %}"
+       title="selfwatch{% if not isCustomLogo %} # {{ 'General_OpenSourceWebAnalytics'|translate }}{% endif %}"
     >
     {% endif %}
-    {% if hasSVGLogo %}
-        <img src='{{ logoSVG }}?matomo'
-             alt="{% if isCustomLogo %}{{ 'General_PoweredBy'|translate }} {% endif %}Matomo"
-             class="{% if not isCustomLogo %}default-piwik-logo{% endif %}" />
+    {% if isCustomLogo %}
+        {% if hasSVGLogo %}
+            <img src='{{ logoSVG }}?selfwatch' alt="{{ 'General_PoweredBy'|translate }} selfwatch" />
+        {% else %}
+            <img src='{% if useLargeLogo|default(false) %}{{ logoLarge }}{% else %}{{ logoHeader }}{% endif %}?selfwatch' alt="{{ 'General_PoweredBy'|translate }} selfwatch" />
+        {% endif %}
     {% else %}
-        <img src='{% if useLargeLogo|default(false) %}{{ logoLarge }}{% else %}{{ logoHeader }}{% endif %}?matomo' alt="{% if isCustomLogo %}{{ 'General_PoweredBy'|translate }} {% endif %}Matomo" />
+        {# selfwatch text wordmark - no image asset required #}
+        <span class="selfwatch-wordmark{% if useLargeLogo|default(false) %} selfwatch-wordmark-large{% endif %}">selfwatch</span>
     {% endif %}
         {% if logoLink is not defined or logoLink is not empty %}
     </a>

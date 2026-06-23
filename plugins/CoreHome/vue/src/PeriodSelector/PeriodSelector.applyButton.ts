@@ -13,22 +13,19 @@ export interface ApplyEnabledState {
   hasPendingNonRangePeriodChange: boolean;
   hasPendingPresetSelection: boolean;
   isRangeValid: boolean | null;
-  isCompareDirty: boolean;
   isComparing: boolean | null;
   comparePeriodType: string;
   isCompareRangeValid: boolean;
 }
 
 export function isApplyButtonEnabled(state: ApplyEnabledState): boolean {
-  if (state.hasPendingNonRangePeriodChange) {
+  // Invariant: non-range period mode intentionally cannot commit "compare to" via Apply button.
+  if (state.uiSelectionType === 'period' && state.uiSelectedPeriod !== RANGE_PERIOD) {
     return false;
   }
 
-  if (state.uiSelectionType === 'period'
-      && state.uiSelectedPeriod !== RANGE_PERIOD
-      && !state.isCompareDirty
-  ) {
-    return true;
+  if (state.hasPendingNonRangePeriodChange) {
+    return false;
   }
 
   if (state.uiSelectedPeriod === RANGE_PERIOD

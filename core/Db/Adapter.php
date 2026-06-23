@@ -109,9 +109,10 @@ class Adapter
     public static function getAdapters()
     {
         static $adapterNames = array(
-            // currently supported by Piwik
+            // currently supported by selfwatch
             'Pdo\Mysql',
             'Mysqli',
+            'Pdo\Sqlite',
 
             // other adapters supported by Zend_Db
         );
